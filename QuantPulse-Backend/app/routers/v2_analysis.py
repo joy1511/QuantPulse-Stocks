@@ -21,7 +21,7 @@ from fastapi import APIRouter, HTTPException
 from app.services.data_provider import fetch_market_context, get_current_vix_level
 from app.services.lstm_service import predict as lstm_predict
 from app.services.regime_detector import detect_regime
-from app.services.agent_orchestrator import run_war_room
+from app.services.agent_orchestrator import run_research_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -109,22 +109,22 @@ async def analyze_ticker(ticker: str):
 
     # 2b. LSTM Neural Prediction (pass pre-fetched data)
     lstm_result = lstm_predict(ticker_clean, target_df=target_df)
-    ai_signal = lstm_result.get("signal", "Neutral")
+    ai_outlook = lstm_result.get("outlook", "Neutral Outlook")
     probability = lstm_result.get("probability", 0.5)
     features_summary = lstm_result.get("features_summary", {})
-    logger.info(f"📈 LSTM: {ai_signal} ({probability:.1%})")
+    logger.info(f"📈 LSTM: {ai_outlook} ({probability:.1%})")
 
     # 2c. Extract current VIX level from LIVE data
     vix_level = get_current_vix_level(vix_df)
     logger.info(f"📊 VIX: {vix_level:.1f}")
 
     # =========================================================================
-    # PHASE 3: REASONING — CrewAI War Room (with 500-error shield)
+    # PHASE 3: REASONING — CrewAI Research Analysis (with 500-error shield)
     # =========================================================================
-    logger.info("🏛️ Phase 3: Convening the War Room...")
+    logger.info("🏛️ Phase 3: Convening the Research Analysis...")
 
     try:
-        war_room_result = run_war_room(
+        research_result = run_research_analysis(
             ticker=ticker_clean,
             lstm_result=lstm_result,
             regime_result=regime_result,
@@ -132,31 +132,31 @@ async def analyze_ticker(ticker: str):
             features_summary=features_summary,
         )
     except Exception as e:
-        # War Room crashed even past its own try-except — shield the endpoint
-        logger.error(f"❌ War Room catastrophic failure: {e}")
+        # Research Analysis crashed even past its own try-except — shield the endpoint
+        logger.error(f"❌ Research Analysis catastrophic failure: {e}")
         logger.error(traceback.format_exc())
-        war_room_result = {
-            "memo": (
+        research_result = {
+            "report": (
                 f"## Technical Analysis Only: {ticker_clean} (NSE)\n\n"
-                f"⚠️ *AI Agent debate unavailable. Showing LSTM + HMM results only.*\n\n"
+                f"⚠️ *AI Agent analysis unavailable. Showing LSTM + HMM results only.*\n\n"
                 f"### Market Regime\n**{regime}**\n\n"
-                f"### LSTM AI Signal\n"
-                f"- Signal: **{ai_signal}**\n"
+                f"### LSTM AI Analysis\n"
+                f"- Outlook: **{ai_outlook}**\n"
                 f"- Confidence: **{probability:.1%}**\n\n"
                 f"### India VIX\n**{vix_level:.1f}**\n\n"
                 f"---\n*Error: {str(e)[:200]}*"
             ),
-            "verdict": "HOLD",
-            "agents_used": ["Technical Analysis Only (War Room Failed)"],
+            "technical_summary": "Neutral Outlook",
+            "agents_used": ["Technical Analysis Only (Research Analysis Failed)"],
             "error": str(e),
         }
 
-    final_report = war_room_result.get("memo", "No report generated.")
-    verdict = war_room_result.get("verdict", "HOLD")
-    agents_used = war_room_result.get("agents_used", [])
-    war_room_error = war_room_result.get("error")
+    final_report = research_result.get("report", "No report generated.")
+    technical_summary = research_result.get("technical_summary", "Neutral Outlook")
+    agents_used = research_result.get("agents_used", [])
+    research_error = research_result.get("error")
 
-    logger.info(f"📋 Verdict: {verdict} | Agents: {agents_used}")
+    logger.info(f"📋 Technical Summary: {technical_summary} | Agents: {agents_used}")
 
     # =========================================================================
     # RESPONSE — Assemble the final JSON (always succeeds)
@@ -165,7 +165,7 @@ async def analyze_ticker(ticker: str):
         "ticker": ticker_clean,
         "regime": regime,
         "vix": round(vix_level, 2),
-        "ai_signal": ai_signal,
+        "ai_outlook": ai_outlook,
         "confidence": f"{probability * 100:.1f}%",
         "final_report": final_report,
         "stock_price": {
@@ -177,7 +177,7 @@ async def analyze_ticker(ticker: str):
         "details": {
             "lstm": {
                 "probability": probability,
-                "signal": ai_signal,
+                "outlook": ai_outlook,
                 "features": features_summary,
             },
             "regime_detection": {
@@ -185,10 +185,10 @@ async def analyze_ticker(ticker: str):
                 "confidence": regime_result.get("confidence", 0),
                 "all_states": regime_result.get("all_states", {}),
             },
-            "war_room": {
-                "verdict": verdict,
+            "research_analysis": {
+                "technical_summary": technical_summary,
                 "agents_used": agents_used,
-                "error": war_room_error,
+                "error": research_error,
             },
         },
     }

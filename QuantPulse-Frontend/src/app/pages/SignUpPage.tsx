@@ -208,9 +208,9 @@ export function SignUpPage() {
             </p>
           </div>
 
-          <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-            <p className="text-xs text-center text-blue-200">
-              <strong>Real Database:</strong> Your account will be securely stored in the database.
+          <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+            <p className="text-xs text-center text-green-200">
+              <strong>Demo Mode:</strong> Enter any details to create an account instantly!
             </p>
           </div>
         </Card>

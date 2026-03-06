@@ -99,20 +99,19 @@ export function DashboardPage() {
   const isPositive = dayChange >= 0;
 
   // Signal config
-  const getSignalConfig = (signal: string) => {
-    switch (signal) {
-      case "Buy":
-        return { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", icon: ArrowUpRight };
-      case "Sell":
-        return { color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20", icon: ArrowDownRight };
-      default:
-        return { color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20", icon: Minus };
+  const getOutlookConfig = (outlook: string) => {
+    if (outlook.includes("Bullish")) {
+      return { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", icon: ArrowUpRight };
+    } else if (outlook.includes("Bearish")) {
+      return { color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20", icon: ArrowDownRight };
+    } else {
+      return { color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20", icon: Minus };
     }
   };
 
-  const getVerdictConfig = (verdict: string) => {
-    if (verdict.includes("BUY")) return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-    if (verdict.includes("SELL")) return "bg-red-500/15 text-red-400 border-red-500/30";
+  const getTechnicalSummaryConfig = (summary: string) => {
+    if (summary.includes("Bullish")) return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+    if (summary.includes("Bearish")) return "bg-red-500/15 text-red-400 border-red-500/30";
     return "bg-blue-500/15 text-blue-400 border-blue-500/30";
   };
 
@@ -197,8 +196,8 @@ export function DashboardPage() {
                   <p className="text-xs text-zinc-500">LSTM Neural Network • HMM Regime Detection • Multi-Agent Debate</p>
                 </div>
                 {v2Data && (
-                  <span className={`ml-auto text-sm font-bold px-4 py-1.5 rounded-full border ${getVerdictConfig(v2Data.details.war_room.verdict)}`}>
-                    {v2Data.details.war_room.verdict}
+                  <span className={`ml-auto text-sm font-bold px-4 py-1.5 rounded-full border ${getTechnicalSummaryConfig(v2Data.details.research_analysis.technical_summary)}`}>
+                    {v2Data.details.research_analysis.technical_summary}
                   </span>
                 )}
               </div>
@@ -213,19 +212,19 @@ export function DashboardPage() {
                 <div className="space-y-5">
                   {/* Signal Cards Row */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* LSTM Signal */}
+                    {/* LSTM Outlook */}
                     {(() => {
-                      const cfg = getSignalConfig(v2Data.ai_signal);
+                      const cfg = getOutlookConfig(v2Data.ai_outlook);
                       const Icon = cfg.icon;
                       return (
                         <div className={`${cfg.bg} border ${cfg.border} p-5 rounded-2xl`}>
                           <div className="flex items-center gap-2 text-zinc-400 mb-3">
                             <TrendingUp size={15} />
-                            <span className="text-[10px] uppercase tracking-widest font-semibold">LSTM Signal</span>
+                            <span className="text-[10px] uppercase tracking-widest font-semibold">LSTM Outlook</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Icon size={20} className={cfg.color} />
-                            <span className={`text-xl font-bold ${cfg.color}`}>{v2Data.ai_signal}</span>
+                            <span className={`text-xl font-bold ${cfg.color}`}>{v2Data.ai_outlook}</span>
                           </div>
                           <p className="text-xs text-zinc-500 mt-1">Probability: {v2Data.confidence}</p>
                         </div>
@@ -287,7 +286,7 @@ export function DashboardPage() {
                   </div>
 
                   {/* Agents Status (if offline) */}
-                  {v2Data.details.war_room.error && (
+                  {v2Data.details.research_analysis.error && (
                     <div className="flex items-center gap-3 bg-amber-500/5 border border-amber-500/15 p-3 rounded-xl">
                       <AlertCircle className="size-4 text-amber-400 shrink-0" />
                       <p className="text-xs text-amber-400/80">
@@ -296,11 +295,11 @@ export function DashboardPage() {
                     </div>
                   )}
 
-                  {/* Investment Memo */}
+                  {/* Research Analysis Report */}
                   <div className="bg-[rgba(15,23,42,0.4)] backdrop-blur-xl p-6 lg:p-8 rounded-2xl border border-white/5">
                     <div className="flex items-center gap-2 mb-5">
                       <FileText size={16} className="text-[#5B8DFF]" />
-                      <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">Investment Memo</h3>
+                      <h3 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">Research Analysis Report</h3>
                     </div>
                     <div className="prose prose-invert prose-sm max-w-none
                       prose-headings:text-blue-400 prose-headings:font-semibold prose-headings:mt-6 prose-headings:mb-3
@@ -328,10 +327,10 @@ export function DashboardPage() {
             {/* Footer */}
             <div className="mt-8 pt-6 border-t border-[rgba(100,150,255,0.1)]">
               <p className="text-center text-[10px] text-zinc-500 uppercase tracking-widest">
-                QuantPulse India • AI-Powered Analytics • {new Date().getFullYear()}
+                QuantPulse India • AI-Powered Research Analytics • {new Date().getFullYear()}
               </p>
               <p className="text-center text-[9px] text-zinc-600 mt-1">
-                ⚠️ Not financial advice. Educational purposes only.
+                ⚠️ Research data for educational purposes. Stocks are inherently unpredictable.
               </p>
             </div>
           </>

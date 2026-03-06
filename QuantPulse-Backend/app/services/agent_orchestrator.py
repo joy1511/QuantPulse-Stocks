@@ -40,7 +40,7 @@ logger.info("✅ API key check complete")
 # THE WAR ROOM — Zero-Fail Entry Point
 # =============================================================================
 
-def run_war_room(
+def run_research_analysis(
     ticker: str,
     lstm_result: dict,
     regime_result: dict,
@@ -48,24 +48,24 @@ def run_war_room(
     features_summary: dict,
 ) -> dict:
     """
-    Run the multi-agent War Room debate with timeout protection.
+    Run the multi-agent Research Analysis with timeout protection.
 
     ZERO-FAIL GUARANTEE:
-    - If agents succeed → returns full AI Investment Memo
-    - If agents timeout (25s) → returns fallback memo with timeout notice
-    - If agents fail → returns fallback memo from real LSTM + HMM data
+    - If agents succeed → returns full Research Analysis Report
+    - If agents timeout (25s) → returns fallback report with timeout notice
+    - If agents fail → returns fallback report from real LSTM + HMM data
     - NEVER raises an exception. NEVER returns a 500.
     """
 
     # Phase A: Minimal buffer
-    logger.info("⏳ Phase A: Initializing War Room...")
+    logger.info("⏳ Phase A: Initializing Research Analysis...")
     time.sleep(1)
 
     # ---- PRODUCTION OPTIMIZATION ----
     # Only skip agents if FORCE_SIMULATION_MODE is explicitly set
     if os.getenv("FORCE_SIMULATION_MODE") == "true":
         logger.info("🚀 Simulation Mode: Skipping AI Agents (FORCE_SIMULATION_MODE=true)")
-        return _build_fallback_memo(ticker, lstm_result, regime_result, vix_level, features_summary)
+        return _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
 
     try:
         # Phase B: Run the crew with timeout protection
@@ -89,18 +89,18 @@ def run_war_room(
             return result
             
         except TimeoutError:
-            logger.error("⏱️ War Room timeout (25s) - returning fallback memo")
-            result = _build_fallback_memo(ticker, lstm_result, regime_result, vix_level, features_summary)
+            logger.error("⏱️ Research Analysis timeout (25s) - returning fallback report")
+            result = _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
             result["error"] = "AI agents timed out (25s limit) - showing technical analysis"
             return result
             
     except Exception as e:
-        # Phase C: Fail-safe — return fallback memo from REAL data
-        error_msg = f"War Room failed: {type(e).__name__}: {e}"
+        # Phase C: Fail-safe — return fallback report from REAL data
+        error_msg = f"Research Analysis failed: {type(e).__name__}: {e}"
         logger.error(f"❌ {error_msg}")
         logger.error(traceback.format_exc())
-        logger.warning("⚠️ Falling back to rule-based Investment Memo...")
-        result = _build_fallback_memo(ticker, lstm_result, regime_result, vix_level, features_summary)
+        logger.warning("⚠️ Falling back to rule-based Research Report...")
+        result = _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
         result["error"] = error_msg
         return result
     finally:
@@ -153,7 +153,7 @@ def _execute_crew(
 
     # ---- Extract data for prompts ----
     lstm_prob = lstm_result.get("probability", 0.5)
-    lstm_signal = lstm_result.get("signal", "Neutral")
+    lstm_outlook = lstm_result.get("outlook", "Neutral Outlook")
     regime = regime_result.get("regime", "Sideways")
     regime_confidence = regime_result.get("confidence", 0.5)
     rsi = features_summary.get("rsi", 50)
@@ -164,16 +164,16 @@ def _execute_crew(
     # AGENT 1: The Fundamentalist
     # =====================================================================
     fundamentalist = Agent(
-        role="Fundamentalist Analyst",
+        role="Fundamentalist Research Analyst",
         goal=(
             f"Research the latest news and macro conditions for {ticker} on NSE India. "
             f"The current India VIX is {vix_level:.1f}. "
-            f"Assess whether the macro environment supports or threatens this stock."
+            f"Assess whether the macro environment supports or threatens this stock's outlook."
         ),
         backstory=(
-            "You are a seasoned macro analyst at a top Indian hedge fund. "
+            "You are a seasoned macro analyst at a top Indian research firm. "
             "You read The Economic Times, Moneycontrol, and Bloomberg every morning. "
-            "You never ignore VIX — above 22 means the market is scared."
+            "You never ignore VIX — above 22 means the market is experiencing elevated volatility."
         ),
         tools=[search_tool] if search_tool else [],
         llm=llm,
@@ -185,17 +185,17 @@ def _execute_crew(
     # AGENT 2: The Technician
     # =====================================================================
     technician = Agent(
-        role="Technical Analyst (Chartist)",
+        role="Technical Research Analyst",
         goal=(
             f"Analyze the technical signals for {ticker}. "
-            f"LSTM neural network: Probability={lstm_prob:.1%}, Signal={lstm_signal}. "
+            f"LSTM neural network: Probability={lstm_prob:.1%}, Outlook={lstm_outlook}. "
             f"Indicators: RSI={rsi}, MACD={macd:.4f}, Bollinger %B={bollinger:.4f}. "
-            f"Confirm or challenge the LSTM signal."
+            f"Confirm or challenge the LSTM outlook."
         ),
         backstory=(
-            "You are an expert technical analyst with 15 years of experience. "
+            "You are an expert technical analyst with 15 years of experience in equity research. "
             "You trust the LSTM model but always cross-verify with RSI and Bollinger Bands. "
-            "RSI > 70 = overbought, RSI < 30 = oversold."
+            "RSI > 70 = overbought territory, RSI < 30 = oversold territory."
         ),
         llm=llm,
         verbose=False,
@@ -208,29 +208,29 @@ def _execute_crew(
     veto_rules = []
     if "Bear" in regime or vix_level > 22:
         veto_rules.append(
-            f"⚠️ VETO ACTIVE: Regime='{regime}' and/or VIX={vix_level:.1f}>22. "
-            f"You MUST VETO any Buy unless exceptionally positive news justifies it."
+            f"⚠️ CAUTION: Regime='{regime}' and/or VIX={vix_level:.1f}>22. "
+            f"You MUST flag elevated risk unless exceptionally positive news justifies optimism."
         )
     if lstm_prob > 0.70 and "Bull" in regime:
         veto_rules.append(
-            f"✅ STRONG SIGNAL: LSTM={lstm_prob:.1%} with Bull regime. "
-            f"If no red flags, this is a STRONG BUY."
+            f"✅ STRONG CONFLUENCE: LSTM={lstm_prob:.1%} with Bull regime. "
+            f"If no red flags, this shows strong bullish technical alignment."
         )
-    veto_text = "\n".join(veto_rules) if veto_rules else "No special veto rules. Use your judgment."
+    veto_text = "\n".join(veto_rules) if veto_rules else "No special risk conditions. Use your judgment."
 
     risk_manager = Agent(
-        role="Chief Risk Manager (Final Decision Maker)",
+        role="Chief Research Analyst (Final Summary)",
         goal=(
-            f"You are the FINAL decision maker for {ticker}. "
+            f"You are the FINAL analyst for {ticker}. "
             f"Regime: {regime} ({regime_confidence:.0%}). VIX: {vix_level:.1f}. "
-            f"LSTM: {lstm_signal} ({lstm_prob:.1%}). "
-            f"\n\nVETO RULES:\n{veto_text}\n\n"
-            f"Issue FINAL VERDICT: STRONG BUY / BUY / HOLD / SELL / STRONG SELL."
+            f"LSTM: {lstm_outlook} ({lstm_prob:.1%}). "
+            f"\n\nRISK CONDITIONS:\n{veto_text}\n\n"
+            f"Provide TECHNICAL SUMMARY: Strong Bullish / Bullish / Neutral / Bearish / Strong Bearish Outlook."
         ),
         backstory=(
-            "You are the Chief Risk Officer managing ₹5000 Cr in Indian equities. "
-            "You have VETO power. You've seen the 2008 crash, COVID crash, and 2024 bubble. "
-            "When VIX > 22, you become extremely cautious."
+            "You are the Chief Research Analyst managing equity research for institutional clients. "
+            "You synthesize technical, fundamental, and risk factors into clear, objective assessments. "
+            "When VIX > 22, you emphasize risk management and volatility considerations."
         ),
         llm=llm,
         verbose=False,
@@ -244,42 +244,43 @@ def _execute_crew(
         description=(
             f"Search for \"{ticker} India stock latest news\". "
             f"India VIX is {vix_level:.1f}. "
-            f"Report: bullish, bearish, or neutral? Any red flags?"
+            f"Report: bullish factors, bearish factors, or neutral? Any red flags?"
         ),
         agent=fundamentalist,
-        expected_output="3-5 bullet news summary. End with: BULLISH, BEARISH, or NEUTRAL.",
+        expected_output="3-5 bullet news summary. End with: BULLISH FACTORS, BEARISH FACTORS, or NEUTRAL.",
     )
 
     technical_task = Task(
         description=(
             f"Analyze {ticker} technicals. "
-            f"LSTM: {lstm_signal} ({lstm_prob:.1%}). "
+            f"LSTM: {lstm_outlook} ({lstm_prob:.1%}). "
             f"RSI={rsi}, MACD={macd:.4f}, Bollinger %B={bollinger:.4f}. "
-            f"Confirm or contradict the AI signal."
+            f"Confirm or contradict the AI outlook."
         ),
         agent=technician,
-        expected_output="Technical analysis. End with: CONFIRMS AI or CONTRADICTS AI.",
+        expected_output="Technical analysis. End with: CONFIRMS AI OUTLOOK or CONTRADICTS AI OUTLOOK.",
     )
 
     manager_task = Task(
         description=(
-            f"Final Investment Decision for {ticker} (NSE)\n\n"
+            f"Final Research Analysis for {ticker} (NSE)\n\n"
             f"Regime: {regime} ({regime_confidence:.0%}), VIX: {vix_level:.1f}\n"
-            f"LSTM: {lstm_signal} ({lstm_prob:.1%})\n"
-            f"Veto Rules: {veto_text}\n\n"
-            f"Write an Investment Memo with sections:\n"
-            f"1. Ticker & Date\n2. Market Regime\n3. LSTM Signal\n"
+            f"LSTM: {lstm_outlook} ({lstm_prob:.1%})\n"
+            f"Risk Conditions: {veto_text}\n\n"
+            f"Write a Research Analysis Report with sections:\n"
+            f"1. Ticker & Date\n2. Market Regime\n3. LSTM Analysis\n"
             f"4. News Analysis\n5. Technical Analysis\n"
-            f"6. Risk Assessment\n7. FINAL VERDICT\n8. Justification"
+            f"6. Risk Assessment\n7. TECHNICAL SUMMARY (detailed)\n8. Justification\n\n"
+            f"TECHNICAL SUMMARY must be one of: Strong Bullish Outlook / Bullish Outlook / Neutral Outlook / Bearish Outlook / Strong Bearish Outlook"
         ),
         agent=risk_manager,
-        expected_output="Structured Markdown Investment Memo with FINAL VERDICT.",
+        expected_output="Structured Markdown Research Report with TECHNICAL SUMMARY.",
     )
 
     # =====================================================================
     # CREW — Sequential, Verbose
     # =====================================================================
-    logger.info(f"🏛️ War Room convening for {ticker}...")
+    logger.info(f"🏛️ Research Analysis convening for {ticker}...")
 
     # Disable memory to prevent ChromaDB/Embedding loading (heavy on Render)
     crew = Crew(
@@ -292,23 +293,23 @@ def _execute_crew(
 
     result = crew.kickoff()
 
-    memo_text = str(result)
-    verdict = _extract_verdict(memo_text)
-    logger.info(f"📋 War Room complete for {ticker}: {verdict}")
+    report_text = str(result)
+    technical_summary = _extract_technical_summary(report_text)
+    logger.info(f"📋 Research Analysis complete for {ticker}: {technical_summary}")
 
     return {
-        "memo": memo_text,
-        "verdict": verdict,
+        "report": report_text,
+        "technical_summary": technical_summary,
         "agents_used": ["Fundamentalist", "Technician", "Risk Manager"],
         "error": None,
     }
 
 
 # =============================================================================
-# FALLBACK MEMO — Built from REAL LSTM + HMM data (never crashes)
+# FALLBACK REPORT — Built from REAL LSTM + HMM data (never crashes)
 # =============================================================================
 
-def _build_fallback_memo(
+def _build_fallback_research_report(
     ticker: str,
     lstm_result: dict,
     regime_result: dict,
@@ -316,47 +317,47 @@ def _build_fallback_memo(
     features_summary: dict,
 ) -> dict:
     lstm_prob = lstm_result.get("probability", 0.5)
-    lstm_signal = lstm_result.get("signal", "Neutral")
+    lstm_outlook = lstm_result.get("outlook", "Neutral Outlook")
     regime = regime_result.get("regime", "Sideways")
     regime_confidence = regime_result.get("confidence", 0.5)
     rsi = features_summary.get("rsi", 50)
     macd = features_summary.get("macd", 0)
     bollinger = features_summary.get("bollinger_pctb", 0.5)
 
-    # Apply veto logic
-    if ("Bear" in regime or vix_level > 22) and lstm_signal == "Buy":
-        verdict = "HOLD"
+    # Apply risk-aware logic
+    if ("Bear" in regime or vix_level > 22) and "Bullish" in lstm_outlook:
+        technical_summary = "Neutral Outlook"
         justification = (
-            f"LSTM suggests Buy ({lstm_prob:.0%}), but VETO: "
-            f"Regime='{regime}', VIX={vix_level:.1f}. Capital preservation priority."
+            f"LSTM suggests {lstm_outlook} ({lstm_prob:.0%}), but elevated risk: "
+            f"Regime='{regime}', VIX={vix_level:.1f}. Caution warranted given market conditions."
         )
     elif lstm_prob > 0.70 and "Bull" in regime:
-        verdict = "STRONG BUY"
+        technical_summary = "Strong Bullish Outlook"
         justification = (
-            f"Strong confluence: LSTM {lstm_prob:.0%} + Bull regime ({regime_confidence:.0%}). "
-            f"VIX {vix_level:.1f} manageable."
+            f"Strong technical confluence: LSTM {lstm_prob:.0%} + Bull regime ({regime_confidence:.0%}). "
+            f"VIX {vix_level:.1f} indicates manageable volatility."
         )
-    elif lstm_signal == "Buy":
-        verdict = "BUY"
-        justification = f"LSTM Buy ({lstm_prob:.0%}) in {regime}. RSI {rsi:.1f} supports entry."
-    elif lstm_signal == "Sell":
-        verdict = "SELL"
-        justification = f"LSTM Sell ({lstm_prob:.0%}). RSI {rsi:.1f} confirms bearish momentum."
+    elif "Bullish" in lstm_outlook:
+        technical_summary = "Bullish Outlook"
+        justification = f"LSTM {lstm_outlook} ({lstm_prob:.0%}) in {regime}. RSI {rsi:.1f} supports positive momentum."
+    elif "Bearish" in lstm_outlook:
+        technical_summary = "Bearish Outlook"
+        justification = f"LSTM {lstm_outlook} ({lstm_prob:.0%}). RSI {rsi:.1f} confirms bearish momentum."
     else:
-        verdict = "HOLD"
+        technical_summary = "Neutral Outlook"
         justification = f"Mixed signals — LSTM {lstm_prob:.0%}, regime {regime}, RSI {rsi:.1f}."
 
     rsi_status = "⚠️ Overbought" if rsi > 70 else ("📉 Oversold" if rsi < 30 else f"Normal ({rsi:.1f})")
     bb_status = "Extended" if bollinger > 1 else ("Compressed" if bollinger < 0 else f"Within bands ({bollinger:.2f})")
 
-    memo = f"""## Investment Memo: {ticker} (NSE)
+    report = f"""## Research Analysis Report: {ticker} (NSE)
 
 ### 1. Market Regime
 **{regime}** (confidence: {regime_confidence:.0%}) — HMM on Nifty 50
 
-### 2. LSTM AI Signal
+### 2. LSTM AI Analysis
 - Probability: **{lstm_prob:.1%}**
-- Signal: **{lstm_signal}**
+- Outlook: **{lstm_outlook}**
 
 ### 3. Technical Indicators
 | Indicator | Value | Status |
@@ -366,22 +367,22 @@ def _build_fallback_memo(
 | Bollinger %B | {bollinger:.4f} | {bb_status} |
 
 ### 4. India VIX
-**{vix_level:.1f}** {'⚠️ Elevated fear' if vix_level > 22 else '✅ Calm market'}
+**{vix_level:.1f}** {'⚠️ Elevated volatility' if vix_level > 22 else '✅ Calm market'}
 
 ### 5. Risk Assessment
-{'🔴 VETO: Bear regime / elevated VIX. Defensive positioning.' if ('Bear' in regime or vix_level > 22) else '🟢 No veto conditions.'}
+{'🔴 CAUTION: Bear regime / elevated VIX. Risk management priority.' if ('Bear' in regime or vix_level > 22) else '🟢 No elevated risk conditions.'}
 
-### 6. FINAL VERDICT: **{verdict}**
+### 6. TECHNICAL SUMMARY: **{technical_summary}**
 {justification}
 
 ---
 *📊 Real LSTM + HMM data. AI agents temporarily offline.*
-*⚠️ Not financial advice. Educational purposes only.*
+*⚠️ Research data for educational purposes. Stocks are inherently unpredictable.*
 """
 
     return {
-        "memo": memo,
-        "verdict": verdict,
+        "report": report,
+        "technical_summary": technical_summary,
         "agents_used": ["Technical Analysis Fallback (LSTM + HMM)"],
         "error": None,
     }
@@ -391,14 +392,15 @@ def _build_fallback_memo(
 # HELPERS
 # =============================================================================
 
-def _extract_verdict(memo: str) -> str:
-    memo_upper = memo.upper()
-    if "STRONG BUY" in memo_upper:
-        return "STRONG BUY"
-    if "STRONG SELL" in memo_upper:
-        return "STRONG SELL"
-    if "SELL" in memo_upper and "BUY" not in memo_upper:
-        return "SELL"
-    if "BUY" in memo_upper and "SELL" not in memo_upper:
-        return "BUY"
-    return "HOLD"
+def _extract_technical_summary(report: str) -> str:
+    """Extract technical summary from AI-generated report."""
+    report_upper = report.upper()
+    if "STRONG BULLISH OUTLOOK" in report_upper or "STRONG BULLISH" in report_upper:
+        return "Strong Bullish Outlook"
+    if "STRONG BEARISH OUTLOOK" in report_upper or "STRONG BEARISH" in report_upper:
+        return "Strong Bearish Outlook"
+    if "BEARISH OUTLOOK" in report_upper or "BEARISH" in report_upper:
+        return "Bearish Outlook"
+    if "BULLISH OUTLOOK" in report_upper or "BULLISH" in report_upper:
+        return "Bullish Outlook"
+    return "Neutral Outlook"

@@ -12,13 +12,13 @@ interface V2AnalysisResponse {
     ticker: string;
     regime: string;
     vix: number;
-    ai_signal: string;
+    ai_outlook: string;
     confidence: string;
     final_report: string;
     details: {
         lstm: {
             probability: number;
-            signal: string;
+            outlook: string;
             features: Record<string, number>;
         };
         regime_detection: {
@@ -26,8 +26,8 @@ interface V2AnalysisResponse {
             confidence: number;
             all_states: Record<string, unknown>;
         };
-        war_room: {
-            verdict: string;
+        research_analysis: {
+            technical_summary: string;
             agents_used: string[];
             error: string | null;
         };
@@ -64,7 +64,7 @@ const StockDashboard = () => {
                 <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
                     QuantPulse AI
                 </h1>
-                <p className="text-slate-400 mb-8">Agentic Hedge Fund Analysis Engine</p>
+                <p className="text-slate-400 mb-8">AI-Powered Research Analysis Engine</p>
 
                 <div className="flex gap-2 max-w-md mx-auto bg-slate-900 p-2 rounded-2xl border border-slate-800 shadow-2xl">
                     <input
@@ -101,10 +101,10 @@ const StockDashboard = () => {
                         <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
                             <div className="flex items-center gap-3 text-slate-400 mb-2">
                                 <TrendingUp size={18} />
-                                <span className="text-xs uppercase tracking-widest font-semibold">LSTM Signal</span>
+                                <span className="text-xs uppercase tracking-widest font-semibold">LSTM Outlook</span>
                             </div>
                             <div className="text-2xl font-bold text-emerald-400">
-                                {data.ai_signal} ({data.confidence})
+                                {data.ai_outlook} ({data.confidence})
                             </div>
                         </div>
 
@@ -116,8 +116,8 @@ const StockDashboard = () => {
                             <div className="text-2xl font-bold text-yellow-500">VIX: {data.vix}</div>
                         </div>
 
-                        {/* War Room Status */}
-                        {data.details.war_room.error && (
+                        {/* Research Analysis Status */}
+                        {data.details.research_analysis.error && (
                             <div className="bg-amber-900/20 p-4 rounded-2xl border border-amber-500/30">
                                 <p className="text-xs text-amber-400 font-medium mb-1">⚠️ AI Agents Status</p>
                                 <p className="text-xs text-amber-300/70">
@@ -127,7 +127,7 @@ const StockDashboard = () => {
                         )}
                     </div>
 
-                    {/* Detailed Investment Memo */}
+                    {/* Detailed Research Analysis Report */}
                     <div className="lg:col-span-2 bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl">
                         <div className="prose prose-invert max-w-none prose-headings:text-blue-400 prose-strong:text-emerald-400 prose-td:text-slate-300 prose-th:text-slate-400">
                             <ReactMarkdown>{data.final_report}</ReactMarkdown>

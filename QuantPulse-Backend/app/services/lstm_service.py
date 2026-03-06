@@ -227,7 +227,7 @@ def predict(ticker: str, target_df: pd.DataFrame = None) -> dict:
     if _MODEL is None or _SCALER is None:
         return {
             "probability": 0.5,
-            "signal": "Neutral",
+            "outlook": "Neutral Outlook",
             "error": "Model not loaded. Check models/ directory.",
             "features_summary": {},
         }
@@ -236,7 +236,7 @@ def predict(ticker: str, target_df: pd.DataFrame = None) -> dict:
     if target_df is None or target_df.empty:
         return {
             "probability": 0.5,
-            "signal": "Neutral",
+            "outlook": "Neutral Outlook",
             "error": f"No market data provided for {ticker}",
             "features_summary": {},
         }
@@ -247,7 +247,7 @@ def predict(ticker: str, target_df: pd.DataFrame = None) -> dict:
     if len(features_df) < 60:
         return {
             "probability": 0.5,
-            "signal": "Neutral",
+            "outlook": "Neutral Outlook",
             "error": f"Insufficient data: need 60 rows, got {len(features_df)}",
             "features_summary": {},
         }
@@ -265,13 +265,13 @@ def predict(ticker: str, target_df: pd.DataFrame = None) -> dict:
     raw_pred = _MODEL.predict(X, verbose=0)
     probability = float(raw_pred[0][0])
 
-    # Step 7: Classify signal
+    # Step 7: Classify outlook (research-based, not trading advice)
     if probability > 0.55:
-        signal = "Buy"
+        outlook = "Bullish Outlook"
     elif probability < 0.45:
-        signal = "Sell"
+        outlook = "Bearish Outlook"
     else:
-        signal = "Neutral"
+        outlook = "Neutral Outlook"
 
     # Build features summary (latest values for the frontend / agents)
     latest = features_df.iloc[-1]
@@ -284,13 +284,13 @@ def predict(ticker: str, target_df: pd.DataFrame = None) -> dict:
     }
 
     logger.info(
-        f"🧠 LSTM Prediction for {ticker}: "
-        f"P={probability:.4f} → {signal} | "
+        f"🧠 LSTM Analysis for {ticker}: "
+        f"P={probability:.4f} → {outlook} | "
         f"RSI={features_summary['rsi']}, MACD={features_summary['macd']}"
     )
 
     return {
         "probability": round(probability, 4),
-        "signal": signal,
+        "outlook": outlook,
         "features_summary": features_summary,
     }

@@ -28,6 +28,7 @@ cachetools>=5.3.0
 
 # Data and Math
 yfinance==0.2.51
+nsepython>=2.6  # NSE India stock data (no API key needed)
 pandas==2.2.3
 numpy>=1.23.5,<2.0.0
 scikit-learn==1.5.2

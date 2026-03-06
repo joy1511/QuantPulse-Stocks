@@ -1,12 +1,14 @@
 """
 Data Provider Service — The Live Data Engine
 
-Uses yfinance exclusively to fetch real-time market data for:
-1. The target stock (e.g., RELIANCE.NS)
-2. Nifty 50 (^NSEI) for market regime context
-3. India VIX (^INDIAVIX) for risk context
+Uses multiple data sources with intelligent fallback:
+1. yfinance (Primary - works locally)
+2. nsepython (NSE-specific - works on cloud, no API key needed)
+3. Serper API (Live prices via Google Search)
+4. TwelveData/Finnhub (If API keys provided)
+5. Synthetic data (Final fallback)
 
-Includes TTL-based LRU caching to prevent Yahoo rate-limiting.
+Includes TTL-based LRU caching to prevent rate-limiting.
 """
 
 import time
@@ -23,6 +25,23 @@ from app.providers.provider_factory import ProviderFactory
 from app.services.serper_price_service import serper_price_service
 
 logger = logging.getLogger(__name__)
+
+# =============================================================================
+# NSE Python Integration (No API Key Needed!)
+# =============================================================================
+
+try:
+    from nsepython import (
+        nse_eq_symbols,
+        nse_quote_ltp,
+        equity_history,
+        nse_quote
+    )
+    NSEPYTHON_AVAILABLE = True
+    logger.info("✅ nsepython available - NSE data source active")
+except ImportError:
+    NSEPYTHON_AVAILABLE = False
+    logger.warning("⚠️ nsepython not installed - NSE fallback disabled")
 
 # =============================================================================
 # TTL-Cached LRU Decorator
@@ -71,7 +90,154 @@ def normalize_ticker(ticker: str) -> str:
 
 
 # =============================================================================
-# Core Data Fetching
+# NSE Python Data Fetching (Tier 2 Fallback - No API Key!)
+# =============================================================================
+
+async def _fetch_from_nsepython(ticker: str, period: str = "2y") -> pd.DataFrame | None:
+    """
+    Fetch data from NSE using nsepython library.
+    Works on cloud platforms, no API key required!
+    
+    Args:
+        ticker: Stock symbol (e.g., "RELIANCE" or "RELIANCE.NS")
+        period: Time period (converts to days)
+        
+    Returns:
+        DataFrame with OHLCV data or None if failed
+    """
+    if not NSEPYTHON_AVAILABLE:
+        return None
+        
+    try:
+        # Remove .NS suffix if present
+        clean_symbol = ticker.replace(".NS", "").strip().upper()
+        
+        # Skip indices (nsepython is for stocks only)
+        if clean_symbol.startswith("^"):
+            return None
+            
+        logger.info(f"🔄 Fetching {clean_symbol} from nsepython...")
+        
+        # Convert period to days
+        days_map = {
+            "1d": 1, "5d": 5, "1mo": 30, "3mo": 90,
+            "6mo": 180, "1y": 365, "2y": 730, "5y": 1825
+        }
+        days = days_map.get(period, 730)  # Default 2 years
+        
+        # Calculate date range
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Fetch historical data using nsepython
+        # equity_history returns DataFrame with columns: Date, Open, High, Low, Close, Volume
+        df = await asyncio.to_thread(
+            equity_history,
+            clean_symbol,
+            "EQ",  # Equity series
+            start_date.strftime("%d-%m-%Y"),
+            end_date.strftime("%d-%m-%Y")
+        )
+        
+        if df is None or df.empty:
+            logger.warning(f"⚠️ nsepython returned no data for {clean_symbol}")
+            return None
+            
+        # Standardize column names to match yfinance
+        if "CH_TIMESTAMP" in df.columns:
+            df["Date"] = pd.to_datetime(df["CH_TIMESTAMP"])
+            df.set_index("Date", inplace=True)
+            
+        # Rename columns to match yfinance format
+        column_mapping = {
+            "CH_OPENING_PRICE": "Open",
+            "CH_TRADE_HIGH_PRICE": "High",
+            "CH_TRADE_LOW_PRICE": "Low",
+            "CH_CLOSING_PRICE": "Close",
+            "CH_TOT_TRADED_QTY": "Volume",
+            # Alternative column names (nsepython may vary)
+            "OPEN": "Open",
+            "HIGH": "High",
+            "LOW": "Low",
+            "CLOSE": "Close",
+            "VOLUME": "Volume"
+        }
+        
+        df.rename(columns=column_mapping, inplace=True)
+        
+        # Ensure we have required columns
+        required_cols = ["Open", "High", "Low", "Close", "Volume"]
+        if not all(col in df.columns for col in required_cols):
+            logger.warning(f"⚠️ nsepython data missing required columns for {clean_symbol}")
+            return None
+            
+        # Convert to numeric
+        for col in required_cols:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+            
+        # Remove NaN rows
+        df = df.dropna(subset=required_cols)
+        
+        if df.empty:
+            logger.warning(f"⚠️ nsepython data empty after cleaning for {clean_symbol}")
+            return None
+            
+        logger.info(f"✅ nsepython success: {len(df)} rows for {clean_symbol}")
+        return df
+        
+    except Exception as e:
+        logger.error(f"❌ nsepython failed for {ticker}: {e}")
+        return None
+
+
+async def _get_live_price_nsepython(ticker: str) -> dict | None:
+    """
+    Get current live price from NSE using nsepython.
+    Fast and reliable for current price only.
+    
+    Args:
+        ticker: Stock symbol (e.g., "RELIANCE")
+        
+    Returns:
+        dict with price info or None
+    """
+    if not NSEPYTHON_AVAILABLE:
+        return None
+        
+    try:
+        clean_symbol = ticker.replace(".NS", "").strip().upper()
+        
+        if clean_symbol.startswith("^"):
+            return None
+            
+        logger.info(f"🔄 Getting live price for {clean_symbol} from nsepython...")
+        
+        # Get live quote
+        quote = await asyncio.to_thread(nse_quote, clean_symbol)
+        
+        if not quote:
+            return None
+            
+        # Extract price data
+        price_data = {
+            "price": float(quote.get("priceInfo", {}).get("lastPrice", 0)),
+            "previous_close": float(quote.get("priceInfo", {}).get("previousClose", 0)),
+            "change": float(quote.get("priceInfo", {}).get("change", 0)),
+            "percent_change": float(quote.get("priceInfo", {}).get("pChange", 0)),
+            "volume": int(quote.get("preOpenMarket", {}).get("totalTradedVolume", 0)),
+            "source": "nsepython"
+        }
+        
+        logger.info(f"✅ nsepython live price: ₹{price_data['price']} for {clean_symbol}")
+        return price_data
+        
+    except Exception as e:
+        logger.error(f"❌ nsepython live price failed for {ticker}: {e}")
+        return None
+
+
+# =============================================================================
+# Core Data Fetching (Updated with nsepython)
 # =============================================================================
 
 async def _fetch_from_provider_fallback(ticker: str, period: str = "2y") -> pd.DataFrame | None:
@@ -80,16 +246,16 @@ async def _fetch_from_provider_fallback(ticker: str, period: str = "2y") -> pd.D
     Converts the result to a pandas DataFrame matching yfinance structure.
     """
     try:
-        # Indices (starts with ^) might not be supported by stock providers simply
+        # Indices (starts with ^) might not be supported by stock providers
         if ticker.startswith("^"):
             return None
 
-        # Remove .NS suffix for provider lookup if needed (providers handle suffix internally)
+        # Remove .NS suffix for provider lookup
         clean_symbol = ticker.replace(".NS", "")
         
         logger.info(f"🔄 Fallback: Fetching {clean_symbol} from active provider...")
         
-        # ✅ FIX: Create ProviderFactory instance (not static call)
+        # Create ProviderFactory instance
         from ..providers.provider_factory import ProviderFactory
         provider_factory = ProviderFactory()
         
@@ -106,7 +272,7 @@ async def _fetch_from_provider_fallback(ticker: str, period: str = "2y") -> pd.D
         # Standardize columns to match yfinance: Date, Open, High, Low, Close, Volume
         df["Date"] = pd.to_datetime(df["date"])
         df.set_index("Date", inplace=True)
-        df.drop(columns=["date"], inplace=True)
+        df.drop(columns=["date"], inplace=True, errors='ignore')
         
         # Rename columns to match yfinance format
         df.rename(columns={
@@ -117,22 +283,13 @@ async def _fetch_from_provider_fallback(ticker: str, period: str = "2y") -> pd.D
             "volume": "Volume"
         }, inplace=True)
         
-        logger.info(f"✅ Provider fallback successful for {ticker}: {len(df)} rows")
-        return df
-        df.rename(columns={
-            "open": "Open", 
-            "high": "High", 
-            "low": "Low", 
-            "close": "Close", 
-            "volume": "Volume"
-        }, inplace=True)
-        
         # Ensure numeric
         cols = ["Open", "High", "Low", "Close", "Volume"]
         for col in cols:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-            
-        logger.info(f"✅ Fallback success: {len(df)} rows for {ticker} via {provider.provider_name}")
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        logger.info(f"✅ Provider fallback successful for {ticker}: {len(df)} rows")
         return df
 
     except Exception as e:
@@ -226,33 +383,46 @@ def _generate_synthetic_data(ticker: str, period: str = "2y") -> pd.DataFrame:
 
 async def _get_data_async(ticker: str, period: str = "2y") -> pd.DataFrame | None:
     """
-    Orchestrates data fetching: yfinance -> Serper (live price) -> Fallback Provider -> Synthetic
+    Orchestrates data fetching with intelligent fallback:
+    1. yfinance (works locally, may fail on cloud)
+    2. nsepython (NSE-specific, works on cloud, no API key)
+    3. Serper API (live price only)
+    4. TwelveData/Finnhub (if API keys provided)
+    5. Synthetic data (final fallback)
     """
     # 1. Try yfinance (sync)
     df = _download_safe_sync(ticker, period)
     if df is not None and not df.empty:
+        logger.info(f"✅ Data source: yfinance for {ticker}")
         return df
     
-    # 2. Try Serper API for live price (only for current price, not historical)
-    # This is specifically for Vercel deployment where yfinance may fail
+    # 2. Try nsepython (NSE stocks only, no API key needed!)
     if not ticker.startswith("^"):
-        logger.info(f"🔄 yfinance failed, trying Serper API for live price of {ticker}...")
+        logger.info(f"🔄 yfinance failed, trying nsepython for {ticker}...")
+        df = await _fetch_from_nsepython(ticker, period)
+        if df is not None and not df.empty:
+            logger.info(f"✅ Data source: nsepython for {ticker}")
+            return df
+    
+    # 3. Try Serper API for live price (current price only, not historical)
+    if not ticker.startswith("^"):
+        logger.info(f"🔄 nsepython failed, trying Serper API for live price of {ticker}...")
         serper_data = await serper_price_service.get_live_price(ticker)
         
         if serper_data and serper_data.get("price"):
-            # Create a minimal DataFrame with just the current price
-            # For historical context, we'll still need to fall back to synthetic
             logger.info(f"✅ Got live price from Serper: ₹{serper_data['price']}")
-            # Continue to fallback provider for historical data
-        
-    # 3. Try Fallback Provider (skip for indices usually)
+            # Note: Serper only provides current price, not historical
+            # Continue to next fallback for historical data
+    
+    # 4. Try Fallback Provider (TwelveData/Finnhub if API keys provided)
     if not ticker.startswith("^"):
+        logger.info(f"🔄 Trying TwelveData/Finnhub fallback for {ticker}...")
         df = await _fetch_from_provider_fallback(ticker, period)
         if df is not None and not df.empty:
+            logger.info(f"✅ Data source: Provider fallback for {ticker}")
             return df
             
-    # 4. FINAL FALLBACK: Synthetic Data
-    # The user explicitly requested "run it on simulated" if no data.
+    # 5. FINAL FALLBACK: Synthetic Data
     logger.warning(f"⚠️ All data sources failed for {ticker}, using SIMULATED data")
     return _generate_synthetic_data(ticker, period)
 

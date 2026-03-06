@@ -32,78 +32,74 @@ export interface LoginData {
 }
 
 /**
- * Register a new user
+ * Register a new user (DUMMY MODE - accepts any credentials)
  */
 export async function register(data: RegisterData): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Registration failed");
-  }
-
-  return response.json();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Return dummy user data
+  return {
+    id: 1,
+    email: data.email,
+    full_name: data.full_name || "Demo User",
+    is_active: true,
+    is_verified: true,
+    created_at: new Date().toISOString(),
+    last_login: null
+  };
 }
 
 /**
- * Login user and get JWT token
+ * Login user and get JWT token (DUMMY MODE - accepts any credentials)
  */
 export async function login(data: LoginData): Promise<LoginResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/login/json`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Login failed");
-  }
-
-  return response.json();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Return dummy token
+  return {
+    access_token: "dummy_token_" + Date.now(),
+    token_type: "bearer"
+  };
 }
 
 /**
- * Get current user profile
+ * Get current user profile (DUMMY MODE)
  */
 export async function getCurrentUser(token: string): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-    headers: { 
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to get user profile");
-  }
-
-  return response.json();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  // Return dummy user data
+  return {
+    id: 1,
+    email: "demo@user.com",
+    full_name: "Demo User",
+    is_active: true,
+    is_verified: true,
+    created_at: new Date().toISOString(),
+    last_login: new Date().toISOString()
+  };
 }
 
 /**
- * Update user profile
+ * Update user profile (DUMMY MODE)
  */
 export async function updateProfile(token: string, data: Partial<User>): Promise<User> {
-  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-    method: "PUT",
-    headers: { 
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to update profile");
-  }
-
-  return response.json();
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Return dummy updated user data
+  return {
+    id: 1,
+    email: data.email || "demo@user.com",
+    full_name: data.full_name || "Demo User",
+    is_active: true,
+    is_verified: true,
+    created_at: new Date().toISOString(),
+    last_login: new Date().toISOString()
+  };
 }
 
 /**

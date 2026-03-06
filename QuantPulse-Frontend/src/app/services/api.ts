@@ -304,7 +304,7 @@ export interface V2AnalysisData {
   ticker: string;
   regime: string;
   vix: number;
-  ai_signal: string;
+  ai_outlook: string;
   confidence: string;
   final_report: string;
   stock_price: {
@@ -316,7 +316,7 @@ export interface V2AnalysisData {
   details: {
     lstm: {
       probability: number;
-      signal: string;
+      outlook: string;
       features: {
         rsi: number;
         macd: number;
@@ -330,8 +330,8 @@ export interface V2AnalysisData {
       confidence: number;
       all_states: Record<string, unknown>;
     };
-    war_room: {
-      verdict: string;
+    research_analysis: {
+      technical_summary: string;
       agents_used: string[];
       error: string | null;
     };
