@@ -32,7 +32,7 @@ joblib==1.5.3
 textblob==0.19.0
 
 # AI and Deep Learning
-tensorflow==2.20.0
+tensorflow==2.18.0
 huggingface-hub==0.26.5
 
 # Agentic Framework - Exact versions from working local environment
