@@ -42,7 +42,7 @@ textblob==0.18.0
 tensorflow==2.16.2
 huggingface-hub==0.26.5
 
-# Agentic Framework - PINNED VERSIONS TO AVOID DEPENDENCY HELL
+# Agentic Framework - COMPATIBLE VERSIONS
 crewai==0.100.1
 crewai-tools==0.32.1
 langchain-core==0.3.27
@@ -50,6 +50,9 @@ langchain-groq==0.2.1
 langchain-community==0.3.31
 langchain-openai==0.2.14
 langchain==0.3.28
+
+# ChromaDB - Must be >=0.5.23 for crewai 0.100.1
+chromadb==0.5.23
 
 # Google Cloud - PINNED TO AVOID RESOLUTION HELL
 google-cloud-aiplatform==1.70.0
@@ -60,8 +63,7 @@ google-auth==2.35.0
 googleapis-common-protos==1.65.0
 proto-plus==1.25.0
 
-# Other CrewAI Dependencies - PINNED
-chromadb==0.4.24
+# Other Dependencies
 opentelemetry-api==1.27.0
 opentelemetry-sdk==1.27.0
 tiktoken==0.7.0
