@@ -1,4 +1,4 @@
-﻿# QuantPulse Backend Dependencies - Optimized for Fast Render Deployment (Python 3.10)
+﻿# QuantPulse Backend Dependencies - Working Configuration (Python 3.10)
 
 # Core Infrastructure
 fastapi==0.115.6
@@ -42,31 +42,11 @@ textblob==0.18.0
 tensorflow==2.16.2
 huggingface-hub==0.26.5
 
-# Agentic Framework - COMPATIBLE VERSIONS
+# Agentic Framework - Let pip resolve compatible versions
+# Install crewai first, it will pull in compatible langchain versions
 crewai==0.100.1
 crewai-tools==0.32.1
-langchain-core==0.3.27
 langchain-groq==0.2.1
-langchain-community==0.3.31
-langchain-openai==0.2.14
-langchain==0.3.28
 
-# ChromaDB - Must be >=0.5.23 for crewai 0.100.1
-chromadb==0.5.23
-
-# Google Cloud - PINNED TO AVOID RESOLUTION HELL
-google-cloud-aiplatform==1.70.0
-google-cloud-storage==2.18.2
-google-cloud-bigquery==3.26.0
-google-api-core==2.21.0
-google-auth==2.35.0
-googleapis-common-protos==1.65.0
-proto-plus==1.25.0
-
-# Other Dependencies
-opentelemetry-api==1.27.0
-opentelemetry-sdk==1.27.0
-tiktoken==0.7.0
-cohere==5.11.4
-posthog==3.7.4
-rich==13.9.4
+# Note: langchain-core, langchain-community, langchain-openai, langchain
+# will be installed automatically by crewai with compatible versions
