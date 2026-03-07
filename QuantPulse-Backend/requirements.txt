@@ -1,4 +1,4 @@
-﻿# QuantPulse Backend Dependencies - Minimal Pinning (Python 3.10)
+﻿# QuantPulse Backend Dependencies - Based on Working Local Environment (Python 3.10)
 
 # Core Infrastructure
 fastapi==0.115.6
@@ -35,18 +35,19 @@ textblob==0.18.0
 tensorflow==2.16.2
 huggingface-hub==0.26.5
 
-# Agentic Framework - Let crewai manage all its dependencies
-crewai==0.100.1
-crewai-tools==0.32.1
+# Agentic Framework - MODERN VERSIONS (matches local working environment)
+# Using crewai 1.9.3 instead of ancient 0.100.1
+crewai==1.9.3
+crewai-tools==1.9.3
 langchain-groq==0.2.1
+langchain-core==0.3.83
+chromadb==1.1.1
+groq==0.37.1
 
-# Note: The following will be installed automatically by crewai with compatible versions:
-# - httpx (crewai needs <0.28.0)
-# - pydantic (crewai needs compatible version)
-# - starlette (crewai needs compatible version)
-# - cachetools
-# - langchain-core, langchain-community, langchain-openai, langchain
-# - chromadb
-# - opentelemetry-api, opentelemetry-sdk
-# - tiktoken, cohere, posthog, rich
-# - All Google Cloud packages
+# Supporting packages for crewai
+opentelemetry-api==1.34.1
+opentelemetry-sdk==1.34.1
+opentelemetry-exporter-otlp-proto-http==1.34.1
+tiktoken==0.8.0
+posthog==5.4.0
+rich==14.3.2
