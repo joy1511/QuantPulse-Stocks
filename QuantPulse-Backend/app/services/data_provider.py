@@ -44,32 +44,66 @@ except ImportError:
     logger.warning("⚠️ nsepython not installed - NSE fallback disabled")
 
 # =============================================================================
-# TTL-Cached LRU Decorator
+# IndianAPI Integration (FREE NSE/BSE API)
 # =============================================================================
 
-def timed_lru_cache(seconds: int = 300, maxsize: int = 10):
-    """
-    LRU cache with a time-to-live (TTL).
-    Entries expire after `seconds` and are re-fetched on the next call.
-    """
-    def wrapper(func):
-        func = lru_cache(maxsize=maxsize)(func)
-        func._lifetime = seconds
-        func._expiration = time.monotonic() + seconds
+try:
+    from app.providers.indianapi_provider import IndianAPIProvider
+    from app.config import INDIANAPI_KEY
+    
+    # Initialize with API key from config (None = FREE tier)
+    _indianapi_provider = IndianAPIProvider(api_key=INDIANAPI_KEY)
+    INDIANAPI_AVAILABLE = True
+    
+    if INDIANAPI_KEY:
+        logger.info("✅ IndianAPI provider available (Premium tier) - FREE NSE/BSE data source active")
+    else:
+        logger.info("✅ IndianAPI provider available (FREE tier) - FREE NSE/BSE data source active")
+except ImportError:
+    INDIANAPI_AVAILABLE = False
+    _indianapi_provider = None
+    logger.warning("⚠️ IndianAPI provider not available")
 
-        @wraps(func)
-        def wrapped_func(*args, **kwargs):
-            if time.monotonic() >= func._expiration:
-                func.cache_clear()
-                func._expiration = time.monotonic() + func._lifetime
-                logger.info(f"🔄 Cache expired for {func.__name__}, re-fetching...")
-            return func(*args, **kwargs)
+# =============================================================================
+# 24-Hour Caching System (Aggressive Caching to Avoid Rate Limits)
+# =============================================================================
 
-        wrapped_func.cache_clear = func.cache_clear
-        wrapped_func.cache_info = func.cache_info
-        return wrapped_func
+_CACHE_24H = {}  # Global cache for 24-hour data storage
 
-    return wrapper
+def get_cache_key(ticker: str, data_type: str) -> str:
+    """Generate cache key for ticker and data type"""
+    return f"{ticker}_{data_type}"
+
+def is_cache_valid(cache_entry: dict, max_age_hours: int = 24) -> bool:
+    """Check if cache entry is still valid"""
+    if not cache_entry:
+        return False
+    
+    cached_time = cache_entry.get("timestamp", 0)
+    age_hours = (time.time() - cached_time) / 3600
+    
+    return age_hours < max_age_hours
+
+def get_from_cache(ticker: str, data_type: str, max_age_hours: int = 24):
+    """Get data from 24-hour cache if valid"""
+    cache_key = get_cache_key(ticker, data_type)
+    cache_entry = _CACHE_24H.get(cache_key)
+    
+    if is_cache_valid(cache_entry, max_age_hours):
+        age_hours = (time.time() - cache_entry["timestamp"]) / 3600
+        logger.info(f"✨ Using cached data for {ticker} ({data_type}) - age: {age_hours:.1f}h")
+        return cache_entry["data"]
+    
+    return None
+
+def save_to_cache(ticker: str, data_type: str, data):
+    """Save data to 24-hour cache"""
+    cache_key = get_cache_key(ticker, data_type)
+    _CACHE_24H[cache_key] = {
+        "data": data,
+        "timestamp": time.time()
+    }
+    logger.info(f"💾 Cached data for {ticker} ({data_type}) - valid for 24h")
 
 
 # =============================================================================
@@ -383,28 +417,70 @@ def _generate_synthetic_data(ticker: str, period: str = "2y") -> pd.DataFrame:
 
 async def _get_data_async(ticker: str, period: str = "2y") -> pd.DataFrame | None:
     """
-    Orchestrates data fetching with intelligent fallback:
+    Orchestrates data fetching with intelligent fallback and 24-hour caching:
+    0. Check 24-hour cache first (avoid rate limits)
     1. yfinance (works locally, may fail on cloud)
-    2. nsepython (NSE-specific, works on cloud, no API key)
-    3. Serper API (live price only)
-    4. TwelveData/Finnhub (if API keys provided)
-    5. Synthetic data (final fallback)
+    2. IndianAPI (FREE NSE/BSE API, works on cloud)
+    3. nsepython (NSE-specific, works on cloud, no API key)
+    4. Serper API (live price only)
+    5. TwelveData/Finnhub (if API keys provided)
+    6. Synthetic data (final fallback)
     """
+    # 0. Check 24-hour cache first (most important for rate limit avoidance)
+    cached_data = get_from_cache(ticker, f"historical_{period}", max_age_hours=24)
+    if cached_data is not None:
+        return cached_data
+    
     # 1. Try yfinance (sync)
     df = _download_safe_sync(ticker, period)
     if df is not None and not df.empty:
         logger.info(f"✅ Data source: yfinance for {ticker}")
+        save_to_cache(ticker, f"historical_{period}", df)
         return df
     
-    # 2. Try nsepython (NSE stocks only, no API key needed!)
+    # 2. Try IndianAPI (FREE NSE/BSE API - works on cloud!)
+    if INDIANAPI_AVAILABLE and not ticker.startswith("^"):
+        logger.info(f"🔄 yfinance failed, trying IndianAPI for {ticker}...")
+        try:
+            historical_data = await _indianapi_provider.get_historical_data(ticker, period=period)
+            if historical_data and historical_data.data:
+                # Convert to DataFrame
+                df = pd.DataFrame(historical_data.data)
+                df["Date"] = pd.to_datetime(df["date"])
+                df.set_index("Date", inplace=True)
+                df.drop(columns=["date"], inplace=True, errors='ignore')
+                
+                # Rename columns to match yfinance format
+                df.rename(columns={
+                    "open": "Open",
+                    "high": "High",
+                    "low": "Low",
+                    "close": "Close",
+                    "volume": "Volume"
+                }, inplace=True)
+                
+                # Ensure numeric
+                for col in ["Open", "High", "Low", "Close", "Volume"]:
+                    if col in df.columns:
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                
+                if not df.empty:
+                    logger.info(f"✅ Data source: IndianAPI for {ticker}")
+                    save_to_cache(ticker, f"historical_{period}", df)
+                    return df
+        except Exception as e:
+            logger.warning(f"⚠️ IndianAPI failed for {ticker}: {e}")
+    
+    # 3. Try nsepython (NSE stocks only, no API key needed!)
     if not ticker.startswith("^"):
-        logger.info(f"🔄 yfinance failed, trying nsepython for {ticker}...")
+        logger.info(f"🔄 IndianAPI failed, trying nsepython for {ticker}...")
         df = await _fetch_from_nsepython(ticker, period)
         if df is not None and not df.empty:
             logger.info(f"✅ Data source: nsepython for {ticker}")
+            save_to_cache(ticker, f"historical_{period}", df)
             return df
     
-    # 3. Try Serper API for live price (current price only, not historical)
+    # 4. Try Serper API for live price (current price only, not historical)
     if not ticker.startswith("^"):
         logger.info(f"🔄 nsepython failed, trying Serper API for live price of {ticker}...")
         serper_data = await serper_price_service.get_live_price(ticker)
@@ -414,61 +490,32 @@ async def _get_data_async(ticker: str, period: str = "2y") -> pd.DataFrame | Non
             # Note: Serper only provides current price, not historical
             # Continue to next fallback for historical data
     
-    # 4. Try Fallback Provider (TwelveData/Finnhub if API keys provided)
+    # 5. Try Fallback Provider (TwelveData/Finnhub if API keys provided)
     if not ticker.startswith("^"):
         logger.info(f"🔄 Trying TwelveData/Finnhub fallback for {ticker}...")
         df = await _fetch_from_provider_fallback(ticker, period)
         if df is not None and not df.empty:
             logger.info(f"✅ Data source: Provider fallback for {ticker}")
+            save_to_cache(ticker, f"historical_{period}", df)
             return df
             
-    # 5. FINAL FALLBACK: Synthetic Data
+    # 6. FINAL FALLBACK: Synthetic Data
     logger.warning(f"⚠️ All data sources failed for {ticker}, using SIMULATED data")
-    return _generate_synthetic_data(ticker, period)
+    df = _generate_synthetic_data(ticker, period)
+    # Don't cache synthetic data (we want to retry real sources next time)
+    return df
 
-
-@timed_lru_cache(seconds=300, maxsize=10)
-def fetch_market_context_sync_wrapper(ticker: str) -> dict:
-    """
-    Async-to-Sync wrapper for LRU cache. 
-    Since lru_cache works on sync functions, and we need async fallback, 
-    we use asyncio.run() here. 
-    
-    WARNING: Nesting asyncio.run() inside a running loop is bad. 
-    But this function is called from a FastAPI endpoint which is async def? 
-    Wait, data_provider functions were synchronous before.
-    
-    Refactoring strategy:
-    - Make `fetch_market_context` async.
-    - Remove `@timed_lru_cache` (or provide async alternative).
-    - Update call sites (`v2_analysis.py`).
-    """
-    # For minimal regression, we'll implement a blocking call via asyncio.run 
-    # ONLY if we are not in a loop. But FastAPI runs on loop.
-    # Actually, yfinance is blocking. Provider is async.
-    
-    # Simpler approach: Use the sync HTTP client in fallback if possible? 
-    # No, providers use httpx.AsyncClient.
-    
-    # We must refactor fetch_market_context to be async.
-    # And check call sites.
-    pass 
-
-# Since we need to change the function signature to async, we can't use standard lru_cache easily.
-# We will use 'async-lru' or simple in-memory dict manual caching for now to avoid dependency hell.
-# Or just async def with no cache (cache is less critical than working).
-# Let's remove cache for now or implement a simple active_cache dict.
-
-_CONTEXT_CACHE = {} 
 
 async def fetch_market_context(ticker: str) -> dict:
     """
-    Fetch complete market context for analysis (Async).
+    Fetch complete market context for analysis (Async with 24-hour caching).
     
     Downloads 2 years of daily data for:
     1. The target stock
     2. ^NSEI (Nifty 50) — for regime detection
     3. ^INDIAVIX (India VIX) — for risk assessment
+    
+    Uses 24-hour caching to avoid rate limits on cloud deployments.
     
     Args:
         ticker: Stock symbol (e.g., "RELIANCE" or "RELIANCE.NS")
@@ -478,22 +525,15 @@ async def fetch_market_context(ticker: str) -> dict:
     """
     ns_ticker = normalize_ticker(ticker)
     
-    # Simple explicit cache check
-    cache_key = f"{ns_ticker}"
-    now = time.time()
-    if cache_key in _CONTEXT_CACHE:
-        entry = _CONTEXT_CACHE[cache_key]
-        if now < entry['expiry']:
-            logger.info(f"✨ Using cached context for {ns_ticker}")
-            return entry['data']
+    # Check cache first (24-hour cache for market context)
+    cached_context = get_from_cache(ns_ticker, "market_context", max_age_hours=24)
+    if cached_context:
+        logger.info(f"✨ Using cached market context for {ns_ticker}")
+        return cached_context
 
     logger.info(f"🔍 Fetching market context for {ns_ticker}...")
 
-    # Fetch all three datasets preferably in parallel
-    # target_df = await _get_data_async(ns_ticker, period="2y")
-    # nifty_df = await _get_data_async("^NSEI", period="2y")
-    # vix_df = await _get_data_async("^INDIAVIX", period="2y")
-    
+    # Fetch all three datasets in parallel
     results = await asyncio.gather(
         _get_data_async(ns_ticker, period="2y"),
         _get_data_async("^NSEI", period="2y"),
@@ -519,11 +559,8 @@ async def fetch_market_context(ticker: str) -> dict:
         "vix_df": vix_df,
     }
     
-    # Cache it
-    _CONTEXT_CACHE[cache_key] = {
-        'data': data,
-        'expiry': now + 300 # 5 mins
-    }
+    # Cache the entire market context for 24 hours
+    save_to_cache(ns_ticker, "market_context", data)
 
     return data
 

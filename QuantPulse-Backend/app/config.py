@@ -45,6 +45,7 @@ APP_DESCRIPTION = "Production-grade backend API with multi-provider stock data e
 # =============================================================================
 
 # Stock Data Provider API Keys
+INDIANAPI_KEY = os.getenv("INDIANAPI_KEY")  # FREE tier works without key
 TWELVEDATA_API_KEY = os.getenv("TWELVEDATA_API_KEY")
 FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
 STOCK_PROVIDER = os.getenv("STOCK_PROVIDER", "auto")  # auto, twelvedata, finnhub, demo
@@ -151,6 +152,7 @@ def validate_and_log_configuration():
     # STEP 6 — Add Startup Logging (API key availability without printing keys)
     print("=" * 50)
     print("API KEY STATUS:")
+    print(f"INDIANAPI_KEY loaded: {bool(INDIANAPI_KEY)} (FREE tier works without key)")
     print(f"NEWSAPI_KEY loaded: {bool(NEWSAPI_KEY)}")
     print(f"FINNHUB_API_KEY loaded: {bool(FINNHUB_API_KEY)}")
     print(f"TWELVEDATA_API_KEY loaded: {bool(TWELVEDATA_API_KEY)}")
@@ -165,6 +167,13 @@ def validate_and_log_configuration():
     api_keys_missing = []
     
     # Stock API Keys
+    if INDIANAPI_KEY:
+        logger.info("✅ INDIANAPI_KEY loaded - IndianAPI premium features available")
+        api_keys_available.append("IndianAPI (Premium)")
+    else:
+        logger.info("ℹ️ INDIANAPI_KEY not set - using FREE tier (works without key)")
+        api_keys_available.append("IndianAPI (FREE)")
+    
     if TWELVEDATA_API_KEY:
         logger.info("✅ TWELVEDATA_API_KEY loaded - primary provider available")
         api_keys_available.append("TwelveData")
@@ -237,6 +246,7 @@ __all__ = [
     "APP_DESCRIPTION",
     
     # API Keys
+    "INDIANAPI_KEY",
     "TWELVEDATA_API_KEY",
     "FINNHUB_API_KEY",
     "NEWSAPI_KEY",

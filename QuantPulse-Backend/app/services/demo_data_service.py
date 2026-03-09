@@ -28,11 +28,11 @@ class DemoDataService:
     - Historical data generation
     """
     
-    # Base data for popular NSE stocks
+    # Base data for popular NSE stocks (Updated with realistic 2026 prices)
     STOCK_DATABASE = {
         "RELIANCE": {
             "name": "Reliance Industries Limited",
-            "base_price": 2950.0,
+            "base_price": 2450.0,  # Realistic NSE price
             "volatility": 0.02,  # 2% daily volatility
             "volume_range": (5000000, 15000000),
             "market_cap": 19500000000000,  # 19.5 Lakh Crores
@@ -42,7 +42,7 @@ class DemoDataService:
         },
         "TCS": {
             "name": "Tata Consultancy Services Limited",
-            "base_price": 4200.0,
+            "base_price": 3650.0,  # Realistic NSE price
             "volatility": 0.015,
             "volume_range": (2000000, 8000000),
             "market_cap": 15400000000000,  # 15.4 Lakh Crores
@@ -52,7 +52,7 @@ class DemoDataService:
         },
         "HDFCBANK": {
             "name": "HDFC Bank Limited",
-            "base_price": 1750.0,
+            "base_price": 1650.0,  # Realistic NSE price
             "volatility": 0.018,
             "volume_range": (3000000, 12000000),
             "market_cap": 13200000000000,  # 13.2 Lakh Crores
@@ -62,7 +62,7 @@ class DemoDataService:
         },
         "INFY": {
             "name": "Infosys Limited",
-            "base_price": 1850.0,
+            "base_price": 1450.0,  # Realistic NSE price
             "volatility": 0.02,
             "volume_range": (4000000, 10000000),
             "market_cap": 7800000000000,  # 7.8 Lakh Crores
@@ -72,7 +72,7 @@ class DemoDataService:
         },
         "ICICIBANK": {
             "name": "ICICI Bank Limited",
-            "base_price": 1250.0,
+            "base_price": 1150.0,  # Realistic NSE price
             "volatility": 0.022,
             "volume_range": (8000000, 20000000),
             "market_cap": 8700000000000,  # 8.7 Lakh Crores
@@ -82,7 +82,7 @@ class DemoDataService:
         },
         "BHARTIARTL": {
             "name": "Bharti Airtel Limited",
-            "base_price": 1650.0,
+            "base_price": 1550.0,  # Realistic NSE price
             "volatility": 0.025,
             "volume_range": (6000000, 18000000),
             "market_cap": 9200000000000,  # 9.2 Lakh Crores
@@ -92,7 +92,7 @@ class DemoDataService:
         },
         "ITC": {
             "name": "ITC Limited",
-            "base_price": 485.0,
+            "base_price": 465.0,  # Realistic NSE price
             "volatility": 0.015,
             "volume_range": (10000000, 25000000),
             "market_cap": 6000000000000,  # 6 Lakh Crores
@@ -102,7 +102,7 @@ class DemoDataService:
         },
         "SBIN": {
             "name": "State Bank of India",
-            "base_price": 850.0,
+            "base_price": 820.0,  # Realistic NSE price
             "volatility": 0.025,
             "volume_range": (15000000, 35000000),
             "market_cap": 7600000000000,  # 7.6 Lakh Crores
@@ -112,7 +112,7 @@ class DemoDataService:
         },
         "LT": {
             "name": "Larsen & Toubro Limited",
-            "base_price": 3650.0,
+            "base_price": 3550.0,  # Realistic NSE price
             "volatility": 0.02,
             "volume_range": (1500000, 5000000),
             "market_cap": 5100000000000,  # 5.1 Lakh Crores
@@ -122,13 +122,63 @@ class DemoDataService:
         },
         "HCLTECH": {
             "name": "HCL Technologies Limited",
-            "base_price": 1580.0,
+            "base_price": 1520.0,  # Realistic NSE price
             "volatility": 0.022,
             "volume_range": (2500000, 7000000),
             "market_cap": 4300000000000,  # 4.3 Lakh Crores
             "sector": "Information Technology",
             "industry": "IT Services",
             "description": "Leading global technology company providing IT services and solutions."
+        },
+        "WIPRO": {
+            "name": "Wipro Limited",
+            "base_price": 285.0,  # Realistic NSE price
+            "volatility": 0.02,
+            "volume_range": (5000000, 15000000),
+            "market_cap": 1600000000000,  # 1.6 Lakh Crores
+            "sector": "Information Technology",
+            "industry": "IT Services",
+            "description": "Leading technology services and consulting company."
+        },
+        "TATAMOTORS": {
+            "name": "Tata Motors Limited",
+            "base_price": 780.0,  # Realistic NSE price
+            "volatility": 0.03,
+            "volume_range": (10000000, 30000000),
+            "market_cap": 3200000000000,  # 3.2 Lakh Crores
+            "sector": "Automobile",
+            "industry": "Auto Manufacturers",
+            "description": "Leading automobile manufacturer with global presence."
+        },
+        "AXISBANK": {
+            "name": "Axis Bank Limited",
+            "base_price": 1080.0,  # Realistic NSE price
+            "volatility": 0.023,
+            "volume_range": (7000000, 18000000),
+            "market_cap": 3500000000000,  # 3.5 Lakh Crores
+            "sector": "Financial Services",
+            "industry": "Private Sector Bank",
+            "description": "Third-largest private sector bank in India."
+        },
+        "MARUTI": {
+            "name": "Maruti Suzuki India Limited",
+            "base_price": 12500.0,  # Realistic NSE price
+            "volatility": 0.02,
+            "volume_range": (500000, 2000000),
+            "market_cap": 3800000000000,  # 3.8 Lakh Crores
+            "sector": "Automobile",
+            "industry": "Auto Manufacturers",
+            "description": "India's largest passenger vehicle manufacturer."
+        },
+        "SUNPHARMA": {
+            "name": "Sun Pharmaceutical Industries Limited",
+            "base_price": 1750.0,  # Realistic NSE price
+            "volatility": 0.018,
+            "volume_range": (2000000, 6000000),
+            "market_cap": 4200000000000,  # 4.2 Lakh Crores
+            "sector": "Pharmaceuticals",
+            "industry": "Pharmaceuticals",
+            "description": "India's largest pharmaceutical company."
         }
     }
     

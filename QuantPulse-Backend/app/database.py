@@ -102,12 +102,13 @@ def init_db():
     """
     try:
         print("🔧 Initializing database...")
-        Base.metadata.create_all(bind=engine)
-        print("✅ Database tables created successfully")
+        # checkfirst=True prevents "table already exists" errors
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        print("✅ Database tables ready")
     except Exception as e:
-        # Tables might already exist, which is fine
-        print(f"ℹ️ Database initialization: {e}")
-        print("✅ Database ready (tables may already exist)")
+        # Log but don't crash - tables might already exist
+        print(f"ℹ️ Database initialization note: {e}")
+        print("✅ Database ready")
 
 def drop_all_tables():
     """
