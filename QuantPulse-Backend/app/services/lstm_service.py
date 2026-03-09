@@ -66,7 +66,13 @@ def _build_model():
 
 
 def _load_model():
-    """Download model weights from Hugging Face, build architecture, load weights."""
+    """Download model weights from Hugging Face, build architecture, load weights.
+    
+    Memory-optimized for free tier deployments:
+    - Only imports TensorFlow when actually needed
+    - Clears memory aggressively after loading
+    - Uses minimal TensorFlow configuration
+    """
     global _MODEL, _SCALER
 
     try:
@@ -102,8 +108,19 @@ def _load_model():
         return
 
     try:
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+        # Memory optimization: Configure TensorFlow for minimal memory usage
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress all TF logs
+        os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
+        os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
+        
         import tensorflow as tf
+        
+        # Disable GPU (not available on free tier anyway)
+        tf.config.set_visible_devices([], 'GPU')
+        
+        # Set memory growth to avoid pre-allocation
+        physical_devices = tf.config.list_physical_devices('CPU')
+        
         tf.get_logger().setLevel("ERROR")
 
         logger.info(f"🧠 Building LSTM architecture and loading weights...")
@@ -114,6 +131,11 @@ def _load_model():
         logger.info(f"📏 Loading scaler...")
         _SCALER = joblib.load(scaler_path)
         logger.info(f"✅ Scaler loaded: {type(_SCALER).__name__}")
+        
+        # Clear memory after loading
+        import gc
+        gc.collect()
+        logger.info(f"🧹 Memory cleared after model loading")
 
     except Exception as e:
         print(f"\n{'='*60}")

@@ -219,20 +219,8 @@ async def startup_event():
     else:
         logger.info("📊 Running in LIVE MODE - serving real market data")
     
-    # Pre-load TensorFlow at startup (when memory is available)
-    logger.info("🧠 Pre-loading TensorFlow to avoid OOM during requests...")
-    try:
-        import os
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-        import tensorflow as tf
-        tf.get_logger().setLevel("ERROR")
-        logger.info("✅ TensorFlow pre-loaded successfully")
-    except Exception as e:
-        logger.warning(f"⚠️ TensorFlow pre-load failed: {e}")
-        logger.warning("⚠️ LSTM predictions will be unavailable")
-    
     logger.info("🎯 Application startup complete - ready to serve requests")
-    logger.info("ℹ️ LSTM model will load on first prediction request")
+    logger.info("ℹ️ LSTM model will load lazily on first prediction request")
 
 @app.on_event("shutdown")
 async def shutdown_event():
