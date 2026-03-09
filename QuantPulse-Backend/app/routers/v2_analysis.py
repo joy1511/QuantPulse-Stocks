@@ -108,11 +108,25 @@ async def analyze_ticker(ticker: str):
     logger.info(f"🌤️ Regime: {regime} (confidence: {regime_result.get('confidence', 0):.0%})")
 
     # 2b. LSTM Neural Prediction (pass pre-fetched data)
-    lstm_result = lstm_predict(ticker_clean, target_df=target_df)
-    ai_outlook = lstm_result.get("outlook", "Neutral Outlook")
-    probability = lstm_result.get("probability", 0.5)
-    features_summary = lstm_result.get("features_summary", {})
-    logger.info(f"📈 LSTM: {ai_outlook} ({probability:.1%})")
+    try:
+        lstm_result = lstm_predict(ticker_clean, target_df=target_df)
+        ai_outlook = lstm_result.get("outlook", "Neutral Outlook")
+        probability = lstm_result.get("probability", 0.5)
+        features_summary = lstm_result.get("features_summary", {})
+        logger.info(f"📈 LSTM: {ai_outlook} ({probability:.1%})")
+    except Exception as e:
+        # LSTM loading failed (TensorFlow too heavy for free tier)
+        logger.warning(f"⚠️ LSTM prediction failed: {e}")
+        lstm_result = {
+            "outlook": "Neutral Outlook",
+            "probability": 0.5,
+            "features_summary": {},
+            "error": "LSTM model unavailable on free tier"
+        }
+        ai_outlook = "Neutral Outlook"
+        probability = 0.5
+        features_summary = {}
+        logger.info(f"📈 LSTM: Skipped (using neutral default)")
 
     # 2c. Extract current VIX level from LIVE data
     vix_level = get_current_vix_level(vix_df)

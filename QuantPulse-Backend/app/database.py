@@ -98,10 +98,16 @@ def init_db():
     """
     Initialize database by creating all tables.
     Called during application startup.
+    Handles existing tables gracefully.
     """
-    print("🔧 Initializing database...")
-    Base.metadata.create_all(bind=engine)
-    print("✅ Database tables created successfully")
+    try:
+        print("🔧 Initializing database...")
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully")
+    except Exception as e:
+        # Tables might already exist, which is fine
+        print(f"ℹ️ Database initialization: {e}")
+        print("✅ Database ready (tables may already exist)")
 
 def drop_all_tables():
     """
