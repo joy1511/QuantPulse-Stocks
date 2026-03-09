@@ -224,6 +224,12 @@ def predict(ticker: str, target_df: pd.DataFrame = None) -> dict:
         - signal: "Buy" | "Sell" | "Neutral"
         - features_summary: dict with latest feature values
     """
+    # Lazy loading: Load model on first prediction request
+    global _MODEL, _SCALER
+    if _MODEL is None or _SCALER is None:
+        logger.info("🧠 First prediction request - loading LSTM model...")
+        _load_model()
+    
     if _MODEL is None or _SCALER is None:
         return {
             "probability": 0.5,

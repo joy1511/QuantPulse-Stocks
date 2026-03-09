@@ -219,14 +219,8 @@ async def startup_event():
     else:
         logger.info("📊 Running in LIVE MODE - serving real market data")
     
-    # ---- Deferred heavy initialization (AFTER port binding) ----
-    # LSTM model download + TensorFlow import happens here, NOT at import time.
-    # This ensures Render's port scan passes before the heavy work starts.
-    logger.info("🧠 Loading LSTM model (deferred)...")
-    from app.services import lstm_service
-    lstm_service.init()
-    
     logger.info("🎯 Application startup complete - ready to serve requests")
+    logger.info("ℹ️ LSTM model will load on first prediction request")
 
 @app.on_event("shutdown")
 async def shutdown_event():
