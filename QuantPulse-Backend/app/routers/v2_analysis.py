@@ -107,6 +107,17 @@ async def analyze_ticker(ticker: str):
     regime = regime_result.get("regime", "Sideways")
     logger.info(f"🌤️ Regime: {regime} (confidence: {regime_result.get('confidence', 0):.0%})")
 
+    # 2c. Extract current VIX level from LIVE data (before freeing memory)
+    vix_level = get_current_vix_level(vix_df)
+    logger.info(f"📊 VIX: {vix_level:.1f}")
+
+    # Free memory before LSTM loading (critical for Render free tier)
+    # Keep only target_df, free nifty_df and vix_df
+    import gc
+    del nifty_df, vix_df
+    gc.collect()
+    logger.info("🧹 Freed memory before LSTM loading")
+
     # 2b. LSTM Neural Prediction (pass pre-fetched data)
     try:
         lstm_result = lstm_predict(ticker_clean, target_df=target_df)
@@ -127,10 +138,6 @@ async def analyze_ticker(ticker: str):
         probability = 0.5
         features_summary = {}
         logger.info(f"📈 LSTM: Skipped (using neutral default)")
-
-    # 2c. Extract current VIX level from LIVE data
-    vix_level = get_current_vix_level(vix_df)
-    logger.info(f"📊 VIX: {vix_level:.1f}")
 
     # =========================================================================
     # PHASE 3: REASONING — CrewAI Research Analysis (with 500-error shield)
