@@ -5,7 +5,7 @@ Defines request/response schemas for user-related API endpoints.
 Provides data validation and serialization.
 """
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, Field, validator
 from typing import Optional
 from datetime import datetime
 
@@ -53,9 +53,9 @@ class UserResponse(BaseModel):
         from_attributes = True  # Pydantic v2 (was orm_mode in v1)
 
 class UserUpdate(BaseModel):
-    """Schema for updating user profile"""
+    """Schema for updating user profile (DUMMY MODE - no validation)"""
     full_name: Optional[str] = Field(None, max_length=255)
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None  # Changed from EmailStr to accept any string
 
 class PasswordChange(BaseModel):
     """Schema for changing password"""
