@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
+# Default timeout for War Room agents (seconds). Can be overridden in env.
+WAR_ROOM_TIMEOUT_SECONDS = int(os.getenv("WAR_ROOM_TIMEOUT_SECONDS", "25"))
+
 if not GROQ_API_KEY:
     logger.error("❌ GROQ_API_KEY not found. War Room agents will fail.")
 if not SERPER_API_KEY:
@@ -52,7 +55,7 @@ def run_research_analysis(
 
     ZERO-FAIL GUARANTEE:
     - If agents succeed → returns full Research Analysis Report
-    - If agents timeout (25s) → returns fallback report with timeout notice
+    - If agents timeout → returns fallback report with timeout notice
     - If agents fail → returns fallback report from real LSTM + HMM data
     - NEVER raises an exception. NEVER returns a 500.
     """
@@ -72,12 +75,12 @@ def run_research_analysis(
         import signal
         
         def timeout_handler(signum, frame):
-            raise TimeoutError("War Room execution exceeded 25 seconds")
+            raise TimeoutError(f"War Room execution exceeded {WAR_ROOM_TIMEOUT_SECONDS} seconds")
         
-        # Set 25-second timeout (only on Unix systems)
+        # Set timeout (only on Unix systems)
         if hasattr(signal, 'SIGALRM'):
             signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(25)
+            signal.alarm(WAR_ROOM_TIMEOUT_SECONDS)
         
         try:
             result = _execute_crew(ticker, lstm_result, regime_result, vix_level, features_summary)
@@ -89,9 +92,9 @@ def run_research_analysis(
             return result
             
         except TimeoutError:
-            logger.error("⏱️ Research Analysis timeout (25s) - returning fallback report")
+            logger.error(f"⏱️ Research Analysis timeout ({WAR_ROOM_TIMEOUT_SECONDS}s) - returning fallback report")
             result = _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
-            result["error"] = "AI agents timed out (25s limit) - showing technical analysis"
+            result["error"] = f"AI agents timed out ({WAR_ROOM_TIMEOUT_SECONDS}s limit) - showing technical analysis"
             return result
             
     except Exception as e:
