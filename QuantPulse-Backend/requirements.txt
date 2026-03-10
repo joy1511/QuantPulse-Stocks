@@ -1,4 +1,4 @@
-﻿# QuantPulse Backend Dependencies - Exact Match to Working Local Environment (Python 3.10)
+# QuantPulse Backend Dependencies - Exact Match to Working Local Environment (Python 3.10)
 
 # Core Infrastructure
 fastapi==0.128.0
@@ -45,6 +45,7 @@ langchain-groq==0.2.1
 langchain-core==0.3.83
 chromadb==1.1.1
 groq==0.37.1
+litellm
 
 # Supporting packages for crewai
 opentelemetry-api==1.34.1
