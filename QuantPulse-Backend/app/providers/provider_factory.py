@@ -2,39 +2,43 @@
 Provider Factory
 
 Smart factory that manages provider selection, fallback logic, and failure handling.
-Implements the complete provider chain: Primary → Fallback → Demo Data.
+Implements the complete provider chain: IndianAPI (Primary) → Demo Data.
+
+TwelveData and Finnhub are available but disabled by default in AUTO mode
+because they do not support Indian market symbols properly.
+They can be force-enabled via STOCK_PROVIDER env var.
 """
 
 import logging
 from typing import Optional, Union
 from enum import Enum
 
-from ..config import TWELVEDATA_API_KEY, FINNHUB_API_KEY, STOCK_PROVIDER
+from ..config import TWELVEDATA_API_KEY, FINNHUB_API_KEY, INDIANAPI_KEY, STOCK_PROVIDER
 from .base import BaseStockProvider, StockQuote, CompanyProfile, HistoricalData
-from .twelvedata_provider import TwelveDataProvider
-from .finnhub_provider import FinnhubProvider
 
 logger = logging.getLogger(__name__)
 
 
 class ProviderMode(Enum):
     """Provider operation modes"""
-    AUTO = "auto"           # Primary → Fallback → Demo
-    TWELVEDATA = "twelvedata"  # Force primary only
-    FINNHUB = "finnhub"     # Force fallback only
-    DEMO = "demo"           # Force demo data only
+    AUTO = "auto"               # IndianAPI → Demo
+    INDIANAPI = "indianapi"     # Force IndianAPI only
+    TWELVEDATA = "twelvedata"   # Force TwelveData only
+    FINNHUB = "finnhub"         # Force Finnhub only
+    DEMO = "demo"               # Force demo data only
 
 
 class ProviderFactory:
     """
     Smart provider factory with automatic fallback logic.
     
-    Features:
-    - Automatic provider selection
-    - Fallback chain management
-    - Environment-based configuration
-    - Structured logging
-    - Demo mode support
+    Default chain (AUTO mode): IndianAPI → Demo Data
+    
+    TwelveData and Finnhub are NOT used in AUTO mode because:
+    - TwelveData does not support .NSE suffix for Indian stocks
+    - Finnhub returns 403 for Indian market (.NS) symbols
+    
+    They can be force-enabled via STOCK_PROVIDER=twelvedata or STOCK_PROVIDER=finnhub.
     """
     
     def __init__(self):
@@ -48,10 +52,9 @@ class ProviderFactory:
         """
         Get stock quote with automatic fallback logic.
         
-        Flow:
-        1. Try primary provider (Twelve Data)
-        2. If fails, try fallback provider (Finnhub)
-        3. If both fail, return demo data
+        Flow (AUTO mode):
+        1. Try IndianAPI (works for all NSE/BSE stocks)
+        2. If fails, return demo data
         
         Args:
             symbol: Stock symbol
@@ -63,131 +66,90 @@ class ProviderFactory:
             logger.info(f"Demo mode: returning simulated data for {symbol}")
             return await self._get_demo_quote(symbol)
         
-        if self.mode == ProviderMode.FINNHUB:
-            return await self._try_fallback_quote(symbol)
+        # For forced TwelveData or Finnhub modes, use fallback_provider
+        if self.mode in [ProviderMode.TWELVEDATA, ProviderMode.FINNHUB]:
+            if self.fallback_provider:
+                try:
+                    return await self.fallback_provider.get_stock_quote(symbol)
+                except Exception as e:
+                    logger.warning(f"Forced provider failed for {symbol}: {e}")
+                    return await self._get_demo_quote(symbol)
+            return await self._get_demo_quote(symbol)
         
-        if self.mode == ProviderMode.TWELVEDATA:
-            return await self._try_primary_quote(symbol)
-        
-        # AUTO mode: full fallback chain
+        # AUTO / INDIANAPI mode: IndianAPI → Demo
         try:
             return await self._try_primary_quote(symbol)
         except Exception as e:
-            logger.warning(f"Primary provider failed for {symbol}: {str(e)}")
-            try:
-                return await self._try_fallback_quote(symbol)
-            except Exception as e2:
-                logger.warning(f"Fallback provider failed for {symbol}: {str(e2)}")
-                logger.warning(f"All providers failed for {symbol} - serving demo data")
-                return await self._get_demo_quote(symbol)
+            logger.warning(f"Primary provider (IndianAPI) failed for {symbol}: {str(e)}")
+            logger.warning(f"Falling back to demo data for {symbol}")
+            return await self._get_demo_quote(symbol)
     
     async def get_historical_data(self, symbol: str, period: str = "1mo") -> HistoricalData:
         """
         Get historical data with automatic fallback logic.
-        
-        Args:
-            symbol: Stock symbol
-            period: Time period
-            
-        Returns:
-            HistoricalData: Normalized historical data (may be demo)
         """
         if self.mode == ProviderMode.DEMO:
-            logger.info(f"Demo mode: returning simulated historical data for {symbol}")
             return await self._get_demo_historical(symbol, period)
         
-        if self.mode == ProviderMode.FINNHUB:
-            return await self._try_fallback_historical(symbol, period)
+        if self.mode in [ProviderMode.TWELVEDATA, ProviderMode.FINNHUB]:
+            if self.fallback_provider:
+                try:
+                    return await self.fallback_provider.get_historical_data(symbol, period)
+                except Exception as e:
+                    logger.warning(f"Forced provider historical failed for {symbol}: {e}")
+                    return await self._get_demo_historical(symbol, period)
+            return await self._get_demo_historical(symbol, period)
         
-        if self.mode == ProviderMode.TWELVEDATA:
-            return await self._try_primary_historical(symbol, period)
-        
-        # AUTO mode: full fallback chain
+        # AUTO / INDIANAPI mode: IndianAPI → Demo
         try:
             return await self._try_primary_historical(symbol, period)
         except Exception as e:
             logger.warning(f"Primary provider historical failed for {symbol}: {str(e)}")
-            try:
-                return await self._try_fallback_historical(symbol, period)
-            except Exception as e2:
-                logger.warning(f"Fallback provider historical failed for {symbol}: {str(e2)}")
-                logger.warning(f"All providers failed for {symbol} historical - serving demo data")
-                return await self._get_demo_historical(symbol, period)
+            return await self._get_demo_historical(symbol, period)
     
     async def get_company_profile(self, symbol: str) -> CompanyProfile:
         """
         Get company profile with automatic fallback logic.
-        
-        Args:
-            symbol: Stock symbol
-            
-        Returns:
-            CompanyProfile: Normalized company data (may be demo)
         """
         if self.mode == ProviderMode.DEMO:
-            logger.info(f"Demo mode: returning simulated profile for {symbol}")
             return await self._get_demo_profile(symbol)
         
-        if self.mode == ProviderMode.FINNHUB:
-            return await self._try_fallback_profile(symbol)
+        if self.mode in [ProviderMode.TWELVEDATA, ProviderMode.FINNHUB]:
+            if self.fallback_provider:
+                try:
+                    return await self.fallback_provider.get_company_profile(symbol)
+                except Exception as e:
+                    logger.warning(f"Forced provider profile failed for {symbol}: {e}")
+                    return await self._get_demo_profile(symbol)
+            return await self._get_demo_profile(symbol)
         
-        if self.mode == ProviderMode.TWELVEDATA:
-            return await self._try_primary_profile(symbol)
-        
-        # AUTO mode: full fallback chain
+        # AUTO / INDIANAPI mode: IndianAPI → Demo
         try:
             return await self._try_primary_profile(symbol)
         except Exception as e:
             logger.warning(f"Primary provider profile failed for {symbol}: {str(e)}")
-            try:
-                return await self._try_fallback_profile(symbol)
-            except Exception as e2:
-                logger.warning(f"Fallback provider profile failed for {symbol}: {str(e2)}")
-                logger.warning(f"All providers failed for {symbol} profile - serving demo data")
-                return await self._get_demo_profile(symbol)
+            return await self._get_demo_profile(symbol)
     
-    # Primary provider methods
+    # Primary provider methods (IndianAPI)
     async def _try_primary_quote(self, symbol: str) -> StockQuote:
-        """Try primary provider for quote"""
+        """Try primary provider (IndianAPI) for quote"""
         if not self.primary_provider:
-            raise Exception("Primary provider not available")
+            raise Exception("Primary provider (IndianAPI) not available")
         return await self.primary_provider.get_stock_quote(symbol)
     
     async def _try_primary_historical(self, symbol: str, period: str) -> HistoricalData:
-        """Try primary provider for historical data"""
+        """Try primary provider (IndianAPI) for historical data"""
         if not self.primary_provider:
-            raise Exception("Primary provider not available")
+            raise Exception("Primary provider (IndianAPI) not available")
         return await self.primary_provider.get_historical_data(symbol, period)
     
     async def _try_primary_profile(self, symbol: str) -> CompanyProfile:
-        """Try primary provider for company profile"""
+        """Try primary provider (IndianAPI) for company profile"""
         if not self.primary_provider:
-            raise Exception("Primary provider not available")
+            raise Exception("Primary provider (IndianAPI) not available")
         return await self.primary_provider.get_company_profile(symbol)
     
-    # Fallback provider methods
-    async def _try_fallback_quote(self, symbol: str) -> StockQuote:
-        """Try fallback provider for quote"""
-        if not self.fallback_provider:
-            raise Exception("Fallback provider not available")
-        logger.warning(f"Using fallback provider for {symbol} quote")
-        return await self.fallback_provider.get_stock_quote(symbol)
-    
-    async def _try_fallback_historical(self, symbol: str, period: str) -> HistoricalData:
-        """Try fallback provider for historical data"""
-        if not self.fallback_provider:
-            raise Exception("Fallback provider not available")
-        logger.warning(f"Using fallback provider for {symbol} historical")
-        return await self.fallback_provider.get_historical_data(symbol, period)
-    
-    async def _try_fallback_profile(self, symbol: str) -> CompanyProfile:
-        """Try fallback provider for company profile"""
-        if not self.fallback_provider:
-            raise Exception("Fallback provider not available")
-        logger.warning(f"Using fallback provider for {symbol} profile")
-        return await self.fallback_provider.get_company_profile(symbol)
-    
-    # Demo data methods (will be implemented by demo service)
+    # Demo data methods
     async def _get_demo_quote(self, symbol: str) -> StockQuote:
         """Get demo quote data"""
         from ..services.demo_data_service import DemoDataService
@@ -216,30 +178,42 @@ class ProviderFactory:
             logger.warning(f"Invalid STOCK_PROVIDER value: {mode_str}, defaulting to auto")
             return ProviderMode.AUTO
     
-    def _create_primary_provider(self) -> Optional[TwelveDataProvider]:
-        """Create primary provider (Twelve Data)"""
-        if not TWELVEDATA_API_KEY and self.mode in [ProviderMode.AUTO, ProviderMode.TWELVEDATA]:
-            logger.warning("TWELVEDATA_API_KEY not found - primary provider disabled")
-            if self.mode == ProviderMode.TWELVEDATA:
-                logger.error("Forced TwelveData mode but no API key provided")
-                return None
+    def _create_primary_provider(self) -> Optional[BaseStockProvider]:
+        """
+        Create primary provider (IndianAPI).
         
-        if TWELVEDATA_API_KEY:
-            logger.info("Primary provider (TwelveData) initialized")
+        IndianAPI is the primary provider for Indian market stocks.
+        Works with both FREE tier (no key) and Premium tier (with key).
+        """
+        if self.mode in [ProviderMode.TWELVEDATA, ProviderMode.FINNHUB]:
+            # When forcing TwelveData/Finnhub, don't create IndianAPI as primary
+            return None
+        
+        try:
+            from .indianapi_provider import IndianAPIProvider
+            provider = IndianAPIProvider(api_key=INDIANAPI_KEY)
+            tier = "Premium" if INDIANAPI_KEY else "FREE"
+            logger.info(f"Primary provider (IndianAPI {tier}) initialized")
+            return provider
+        except Exception as e:
+            logger.error(f"Failed to initialize IndianAPI provider: {e}")
+            return None
+    
+    def _create_fallback_provider(self) -> Optional[BaseStockProvider]:
+        """
+        Create fallback provider — only used when STOCK_PROVIDER is explicitly
+        set to 'twelvedata' or 'finnhub'.
+        
+        NOT used in AUTO mode (TwelveData/Finnhub don't support Indian stocks).
+        """
+        if self.mode == ProviderMode.TWELVEDATA and TWELVEDATA_API_KEY:
+            from .twelvedata_provider import TwelveDataProvider
+            logger.info("Fallback provider (TwelveData) initialized (forced mode)")
             return TwelveDataProvider(api_key=TWELVEDATA_API_KEY)
         
-        return None
-    
-    def _create_fallback_provider(self) -> Optional[FinnhubProvider]:
-        """Create fallback provider (Finnhub)"""
-        if not FINNHUB_API_KEY and self.mode in [ProviderMode.AUTO, ProviderMode.FINNHUB]:
-            logger.warning("FINNHUB_API_KEY not found - fallback provider disabled")
-            if self.mode == ProviderMode.FINNHUB:
-                logger.error("Forced Finnhub mode but no API key provided")
-                return None
-        
-        if FINNHUB_API_KEY:
-            logger.info("Fallback provider (Finnhub) initialized")
+        if self.mode == ProviderMode.FINNHUB and FINNHUB_API_KEY:
+            from .finnhub_provider import FinnhubProvider
+            logger.info("Fallback provider (Finnhub) initialized (forced mode)")
             return FinnhubProvider(api_key=FINNHUB_API_KEY)
         
         return None
@@ -250,6 +224,10 @@ class ProviderFactory:
             "mode": self.mode.value,
             "primary_available": self.primary_provider is not None,
             "fallback_available": self.fallback_provider is not None,
-            "primary_provider": "TwelveData" if self.primary_provider else None,
-            "fallback_provider": "Finnhub" if self.fallback_provider else None
+            "primary_provider": "IndianAPI" if self.primary_provider else None,
+            "fallback_provider": (
+                "TwelveData" if self.mode == ProviderMode.TWELVEDATA and self.fallback_provider
+                else "Finnhub" if self.mode == ProviderMode.FINNHUB and self.fallback_provider
+                else None
+            )
         }

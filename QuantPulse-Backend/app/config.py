@@ -48,7 +48,7 @@ APP_DESCRIPTION = "Production-grade backend API with multi-provider stock data e
 INDIANAPI_KEY = os.getenv("INDIANAPI_KEY")  # FREE tier works without key
 TWELVEDATA_API_KEY = os.getenv("TWELVEDATA_API_KEY")
 FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
-STOCK_PROVIDER = os.getenv("STOCK_PROVIDER", "auto")  # auto, twelvedata, finnhub, demo
+STOCK_PROVIDER = os.getenv("STOCK_PROVIDER", "auto")  # auto, indianapi, twelvedata, finnhub, demo
 
 # News API Configuration
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY")
@@ -168,25 +168,17 @@ def validate_and_log_configuration():
     
     # Stock API Keys
     if INDIANAPI_KEY:
-        logger.info("✅ INDIANAPI_KEY loaded - IndianAPI premium features available")
-        api_keys_available.append("IndianAPI (Premium)")
+        logger.info("✅ INDIANAPI_KEY loaded - IndianAPI premium features available (PRIMARY)")
+        api_keys_available.append("IndianAPI (Premium - Primary)")
     else:
         logger.info("ℹ️ INDIANAPI_KEY not set - using FREE tier (works without key)")
-        api_keys_available.append("IndianAPI (FREE)")
+        api_keys_available.append("IndianAPI (FREE - Primary)")
     
     if TWELVEDATA_API_KEY:
-        logger.info("✅ TWELVEDATA_API_KEY loaded - primary provider available")
-        api_keys_available.append("TwelveData")
-    else:
-        logger.warning("⚠️ TWELVEDATA_API_KEY missing - primary provider disabled")
-        api_keys_missing.append("TwelveData")
+        logger.info("ℹ️ TWELVEDATA_API_KEY loaded - disabled in AUTO mode (Indian stocks not supported)")
     
     if FINNHUB_API_KEY:
-        logger.info("✅ FINNHUB_API_KEY loaded - fallback provider available")
-        api_keys_available.append("Finnhub")
-    else:
-        logger.warning("⚠️ FINNHUB_API_KEY missing - fallback provider disabled")
-        api_keys_missing.append("Finnhub")
+        logger.info("ℹ️ FINNHUB_API_KEY loaded - disabled in AUTO mode (Indian stocks not supported)")
     
     # News API Key
     if NEWSAPI_KEY:

@@ -5,13 +5,13 @@ This module provides endpoints for fetching real-time NSE stock data
 using a production-grade multi-provider architecture with intelligent fallback.
 
 Architecture Flow:
-Router → Stock Service → Cache Service → Provider Factory → Providers → Demo Fallback
+Router → Stock Service → Cache Service → Provider Factory → IndianAPI → Demo Fallback
 
 Features:
-- Multi-provider support (TwelveData → Finnhub → Demo)
+- IndianAPI primary provider (real NSE/BSE data)
 - Production-grade caching with request coalescing
 - Stale-while-revalidate for optimal performance
-- Automatic demo mode when providers fail
+- Automatic demo mode when provider fails
 - Clean error handling and logging
 - No direct provider dependencies in router
 """

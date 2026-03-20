@@ -90,7 +90,7 @@ class CacheService:
     
     # Cache TTL settings (in seconds)
     CACHE_SETTINGS = {
-        "stock_quote": 60,        # 1 minute
+        "stock_quote": 180,       # 3 minutes
         "historical_data": 300,   # 5 minutes
         "company_profile": 86400, # 24 hours
     }

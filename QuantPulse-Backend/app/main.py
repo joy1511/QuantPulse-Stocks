@@ -205,17 +205,19 @@ async def startup_event():
     logger.info(f"🔧 Provider mode: {service_status['provider_status']['mode']}")
     
     if service_status['provider_status']['primary_available']:
-        logger.info("✅ Primary provider (TwelveData) available")
+        primary_name = service_status['provider_status'].get('primary_provider', 'IndianAPI')
+        logger.info(f"✅ Primary provider ({primary_name}) available")
     
     if service_status['provider_status']['fallback_available']:
-        logger.info("✅ Fallback provider (Finnhub) available")
+        fallback_name = service_status['provider_status'].get('fallback_provider', 'Unknown')
+        logger.info(f"✅ Fallback provider ({fallback_name}) available")
     
     if DEMO_MODE:
         logger.warning("🔄 Running in DEMO MODE - serving simulated data")
         if IS_RAILWAY:
             logger.warning("🔄 Configure API keys in Railway dashboard for live data")
         else:
-            logger.warning("🔄 To enable live data, configure TWELVEDATA_API_KEY or FINNHUB_API_KEY")
+            logger.warning("🔄 To enable live data, configure INDIANAPI_KEY")
     else:
         logger.info("📊 Running in LIVE MODE - serving real market data")
     

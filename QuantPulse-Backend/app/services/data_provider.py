@@ -21,7 +21,6 @@ import yfinance as yf
 import pandas as pd
 
 import asyncio
-from app.providers.provider_factory import ProviderFactory
 from app.services.serper_price_service import serper_price_service
 
 logger = logging.getLogger(__name__)
@@ -274,61 +273,7 @@ async def _get_live_price_nsepython(ticker: str) -> dict | None:
 # Core Data Fetching (Updated with nsepython)
 # =============================================================================
 
-async def _fetch_from_provider_fallback(ticker: str, period: str = "2y") -> pd.DataFrame | None:
-    """
-    Fallback: Fetch historical data from TwelveData/Finnhub via ProviderFactory.
-    Converts the result to a pandas DataFrame matching yfinance structure.
-    """
-    try:
-        # Indices (starts with ^) might not be supported by stock providers
-        if ticker.startswith("^"):
-            return None
 
-        # Remove .NS suffix for provider lookup
-        clean_symbol = ticker.replace(".NS", "")
-        
-        logger.info(f"🔄 Fallback: Fetching {clean_symbol} from active provider...")
-        
-        # Create ProviderFactory instance
-        from ..providers.provider_factory import ProviderFactory
-        provider_factory = ProviderFactory()
-        
-        # Use instance method to get historical data
-        historical = await provider_factory.get_historical_data(clean_symbol, period=period)
-        
-        if not historical or not historical.data:
-            logger.warning(f"⚠️ Provider returned no data for {ticker}")
-            return None
-            
-        # Convert list of dicts to DataFrame
-        df = pd.DataFrame(historical.data)
-        
-        # Standardize columns to match yfinance: Date, Open, High, Low, Close, Volume
-        df["Date"] = pd.to_datetime(df["date"])
-        df.set_index("Date", inplace=True)
-        df.drop(columns=["date"], inplace=True, errors='ignore')
-        
-        # Rename columns to match yfinance format
-        df.rename(columns={
-            "open": "Open",
-            "high": "High",
-            "low": "Low",
-            "close": "Close",
-            "volume": "Volume"
-        }, inplace=True)
-        
-        # Ensure numeric
-        cols = ["Open", "High", "Low", "Close", "Volume"]
-        for col in cols:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
-        
-        logger.info(f"✅ Provider fallback successful for {ticker}: {len(df)} rows")
-        return df
-
-    except Exception as e:
-        logger.error(f"❌ Fallback failed for {ticker}: {e}")
-        return None
 
 def _download_safe_sync(ticker: str, period: str = "2y"):
     """
@@ -488,18 +433,9 @@ async def _get_data_async(ticker: str, period: str = "2y") -> pd.DataFrame | Non
         if serper_data and serper_data.get("price"):
             logger.info(f"✅ Got live price from Serper: ₹{serper_data['price']}")
             # Note: Serper only provides current price, not historical
-            # Continue to next fallback for historical data
-    
-    # 5. Try Fallback Provider (TwelveData/Finnhub if API keys provided)
-    if not ticker.startswith("^"):
-        logger.info(f"🔄 Trying TwelveData/Finnhub fallback for {ticker}...")
-        df = await _fetch_from_provider_fallback(ticker, period)
-        if df is not None and not df.empty:
-            logger.info(f"✅ Data source: Provider fallback for {ticker}")
-            save_to_cache(ticker, f"historical_{period}", df)
-            return df
+            # Continue to synthetic data fallback
             
-    # 6. FINAL FALLBACK: Synthetic Data
+    # 5. FINAL FALLBACK: Synthetic Data
     logger.warning(f"⚠️ All data sources failed for {ticker}, using SIMULATED data")
     df = _generate_synthetic_data(ticker, period)
     # Don't cache synthetic data (we want to retry real sources next time)
