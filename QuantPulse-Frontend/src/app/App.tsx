@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/app/components/Layout';
 import { HomePage } from '@/app/pages/HomePage';
 import { DashboardPage } from '@/app/pages/DashboardPage';
-import { StatisticsPage } from '@/app/pages/StatisticsPage';
 import { ContactPage } from '@/app/pages/ContactPage';
 import { SignInPage } from '@/app/pages/SignInPage';
 import { SignUpPage } from '@/app/pages/SignUpPage';
@@ -39,11 +38,6 @@ export default function App() {
                 <Route path="risk-map" element={
                   <ProtectedRoute>
                     <RiskMapPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="statistics" element={
-                  <ProtectedRoute>
-                    <StatisticsPage />
                   </ProtectedRoute>
                 } />
                 <Route path="contact" element={<ContactPage />} />

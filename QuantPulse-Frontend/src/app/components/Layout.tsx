@@ -12,7 +12,6 @@ export function Layout() {
     { path: '/dashboard', icon: TrendingUp, label: 'Dashboard' },
     { path: '/portfolio', icon: Briefcase, label: 'Portfolio' },
     { path: '/risk-map', icon: Users, label: 'Risk Map' },
-    { path: '/statistics', icon: BarChart3, label: 'Statistics' },
     { path: '/contact', icon: Mail, label: 'Contact' },
   ];
 
