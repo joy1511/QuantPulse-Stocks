@@ -9,7 +9,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   (window.location.hostname === "localhost"
     ? "http://localhost:8000"
-    : "https://quantpulse-backend.onrender.com");
+    : "https://quantpulse-stocks-backend.onrender.com");
 
 // =============================================================================
 // Types
@@ -353,6 +353,42 @@ export async function fetchV2Analysis(
     throw new Error(
       errorData.detail?.message || `Failed to fetch V2 analysis for ${symbol}`,
     );
+  }
+
+  return response.json();
+}
+
+// =============================================================================
+// Market Movers (Top Gainers / Losers)
+// =============================================================================
+
+export interface TrendingStock {
+  ticker: string;
+  company: string;
+  price: number;
+  percent_change: number;
+  net_change: number;
+  volume: number;
+  high: number;
+  low: number;
+  open: number;
+}
+
+export interface TrendingStocksData {
+  top_gainers: TrendingStock[];
+  top_losers: TrendingStock[];
+  timestamp: number;
+  cached: boolean;
+}
+
+/**
+ * Fetch trending stocks (top gainers + losers)
+ */
+export async function fetchTrendingStocks(): Promise<TrendingStocksData> {
+  const response = await fetch(`${API_BASE_URL}/api/market/trending`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch trending stocks");
   }
 
   return response.json();

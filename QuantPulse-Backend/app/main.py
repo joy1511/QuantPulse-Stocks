@@ -45,6 +45,7 @@ from app.config import (
     ALLOWED_ORIGINS,
     DEMO_MODE,
     IS_RAILWAY,
+    IS_CLOUD,
     setup_logging,
     validate_and_log_configuration
 )
@@ -57,6 +58,7 @@ from app.routers import predictions
 from app.routers import ensemble
 from app.routers import v2_analysis
 from app.routers import auth
+from app.routers import market
 
 # Setup logging first
 setup_logging()
@@ -180,6 +182,7 @@ app.include_router(news.router)
 app.include_router(predictions.router)
 app.include_router(ensemble.router)
 app.include_router(v2_analysis.router)
+app.include_router(market.router)
 
 # =============================================================================
 # Application Startup

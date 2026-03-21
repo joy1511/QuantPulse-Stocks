@@ -101,8 +101,9 @@ class EnsemblePredictResponse(BaseModel):
     disclaimer: str
 
 
-# Internal API helper
-INTERNAL_API_BASE = "http://localhost:8000"
+# Internal API helper — resolves correctly both locally and on deployment
+import os as _os
+INTERNAL_API_BASE = _os.getenv("INTERNAL_API_BASE", "http://localhost:8000")
 
 
 async def fetch_current_price(symbol: str) -> Optional[float]:

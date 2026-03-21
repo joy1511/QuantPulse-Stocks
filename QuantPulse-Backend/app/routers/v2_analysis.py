@@ -56,7 +56,7 @@ async def analyze_ticker(ticker: str):
     # =========================================================================
     # PHASE 1: DATA — Fetch LIVE market context from yfinance (or fallback)
     # =========================================================================
-    logger.info("📥 Phase 1: Fetching LIVE market data from yfinance...")
+    logger.info("📥 Phase 1: Fetching LIVE market data (yfinance locally / IndianAPI on cloud)...")
 
     try:
         context = await fetch_market_context(ticker_clean)

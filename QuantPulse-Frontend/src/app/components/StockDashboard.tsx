@@ -1,12 +1,11 @@
 import { useState } from "react";
-import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import { Search, TrendingUp, AlertTriangle, Loader2, BarChart2 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ||
     (window.location.hostname === "localhost"
         ? "http://127.0.0.1:8000"
-        : "https://quantpulse-backend.onrender.com");
+        : "https://quantpulse-stocks-backend.onrender.com");
 
 interface V2AnalysisResponse {
     ticker: string;
@@ -45,10 +44,10 @@ const StockDashboard = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await axios.get<V2AnalysisResponse>(
-                `${API_BASE}/api/v2/analyze/${ticker.toUpperCase()}`
-            );
-            setData(response.data);
+            const response = await fetch(`${API_BASE}/api/v2/analyze/${ticker.toUpperCase()}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const json: V2AnalysisResponse = await response.json();
+            setData(json);
         } catch (err) {
             setError("Analysis failed. Please check backend connection or API limits.");
             console.error(err);

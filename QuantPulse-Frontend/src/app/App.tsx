@@ -8,6 +8,7 @@ import { SignInPage } from '@/app/pages/SignInPage';
 import { SignUpPage } from '@/app/pages/SignUpPage';
 import { AuthCallbackPage } from '@/app/pages/AuthCallbackPage';
 import { RiskMapPage } from '@/app/pages/RiskMapPage';
+import { PortfolioPage } from '@/app/pages/PortfolioPage';
 import { FintechBackground } from '@/app/components/FintechBackground';
 import { AuthProvider } from '@/app/context/AuthContext';
 import { ProtectedRoute } from '@/app/components/ProtectedRoute';
@@ -28,6 +29,11 @@ export default function App() {
                 <Route path="dashboard" element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="portfolio" element={
+                  <ProtectedRoute>
+                    <PortfolioPage />
                   </ProtectedRoute>
                 } />
                 <Route path="risk-map" element={

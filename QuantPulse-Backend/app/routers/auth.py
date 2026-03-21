@@ -268,7 +268,7 @@ async def google_login(request: Request):
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get("/google/callback")
-async def google_callback(request: Request, db: Session = Depends(get_db)):
+async def google_callback(request: Request):
     """
     Handle Google OAuth callback.
     
@@ -296,29 +296,9 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
                 detail="Email not provided by Google"
             )
         
-        # Check if user exists
-        user = db.query(User).filter(User.email == email).first()
-        
-        if not user:
-            # Create new user with Google account
-            user = User(
-                email=email,
-                full_name=full_name,
-                hashed_password="",  # No password for OAuth users
-                is_active=True,
-                is_verified=True,  # Google accounts are pre-verified
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        
-        # Update last login
-        user.last_login = datetime.utcnow()
-        db.commit()
-        
-        # Create JWT token
+        # Create JWT token (DUMMY MODE — no DB needed)
         access_token = create_access_token(
-            data={"sub": user.email, "user_id": user.id}
+            data={"sub": email, "user_id": 1}
         )
         
         # Redirect to frontend with token

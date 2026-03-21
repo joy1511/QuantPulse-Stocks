@@ -74,8 +74,9 @@ NEWS_WEIGHT = 0.3
 # Moving average period (in days)
 MA_PERIOD = 5
 
-# Internal API base URL
-INTERNAL_API_BASE = "http://localhost:8000"
+# Internal API base URL — resolves correctly both locally and on deployment
+import os as _os
+INTERNAL_API_BASE = _os.getenv("INTERNAL_API_BASE", "http://localhost:8000")
 
 
 # =============================================================================
@@ -105,13 +106,18 @@ def fetch_historical_prices(symbol: str, period: str = "1mo") -> list:
 
 def get_current_price_info(symbol: str) -> dict:
     """
-    Fetch current price info from Yayoo Finance.
+    Fetch current price info from Yahoo Finance.
     Blocking I/O - should be run in a thread.
     """
     yf_symbol = f"{symbol.upper()}.NS"
     try:
         ticker = yf.Ticker(yf_symbol)
-        return ticker.info
+        hist = ticker.history(period="2d")
+        if hist.empty:
+            return {}
+        # Use last close as current price — more reliable than .info
+        last_close = float(hist["Close"].iloc[-1])
+        return {"regularMarketPrice": last_close}
     except Exception as e:
         print(f"Error fetching stock info: {e}")
         return {}

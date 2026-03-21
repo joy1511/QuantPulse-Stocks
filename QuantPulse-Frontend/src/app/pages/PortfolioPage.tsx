@@ -1,0 +1,634 @@
+import { useState, useEffect, useCallback } from "react";
+import {
+    getHoldings,
+    addHolding,
+    updateHolding,
+    deleteHolding,
+    type PortfolioHolding,
+    type EnrichedHolding,
+} from "@/app/services/portfolioStore";
+import { fetchStockData } from "@/app/services/api";
+import {
+    Briefcase,
+    Plus,
+    Pencil,
+    Trash2,
+    Loader2,
+    TrendingUp,
+    TrendingDown,
+    IndianRupee,
+    BarChart3,
+    ArrowUpRight,
+    ArrowDownRight,
+    X,
+    RefreshCw,
+} from "lucide-react";
+
+// ── Add / Edit Modal ─────────────────────────────────────────────────
+
+interface HoldingFormData {
+    symbol: string;
+    buyPrice: string;
+    quantity: string;
+    buyDate: string;
+    notes: string;
+}
+
+const emptyForm: HoldingFormData = {
+    symbol: "",
+    buyPrice: "",
+    quantity: "",
+    buyDate: new Date().toISOString().slice(0, 10),
+    notes: "",
+};
+
+function HoldingModal({
+    isOpen,
+    onClose,
+    onSave,
+    editingHolding,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (data: HoldingFormData) => void;
+    editingHolding: PortfolioHolding | null;
+}) {
+    const [form, setForm] = useState<HoldingFormData>(emptyForm);
+
+    useEffect(() => {
+        if (editingHolding) {
+            setForm({
+                symbol: editingHolding.symbol,
+                buyPrice: editingHolding.buyPrice.toString(),
+                quantity: editingHolding.quantity.toString(),
+                buyDate: editingHolding.buyDate,
+                notes: editingHolding.notes,
+            });
+        } else {
+            setForm(emptyForm);
+        }
+    }, [editingHolding, isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.symbol || !form.buyPrice || !form.quantity) return;
+        onSave(form);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={onClose}
+            />
+
+            {/* Modal */}
+            <div className="relative w-full max-w-md mx-4 bg-[rgba(15,23,42,0.95)] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-zinc-100">
+                        {editingHolding ? "Edit Holding" : "Add Stock Holding"}
+                    </h3>
+                    <button
+                        onClick={onClose}
+                        className="p-1.5 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-zinc-200 transition-colors"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Symbol */}
+                    <div>
+                        <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                            Stock Symbol *
+                        </label>
+                        <input
+                            type="text"
+                            value={form.symbol}
+                            onChange={(e) => setForm({ ...form, symbol: e.target.value.toUpperCase() })}
+                            placeholder="e.g. RELIANCE, TCS, INFY"
+                            required
+                            className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-[#3A6FF8]/50 focus:ring-1 focus:ring-[#3A6FF8]/20 transition-all"
+                        />
+                    </div>
+
+                    {/* Buy Price + Quantity row */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                                Buy Price (₹) *
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={form.buyPrice}
+                                onChange={(e) => setForm({ ...form, buyPrice: e.target.value })}
+                                placeholder="1250.00"
+                                required
+                                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-[#3A6FF8]/50 focus:ring-1 focus:ring-[#3A6FF8]/20 transition-all"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                                Quantity *
+                            </label>
+                            <input
+                                type="number"
+                                step="1"
+                                min="1"
+                                value={form.quantity}
+                                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                                placeholder="10"
+                                required
+                                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-[#3A6FF8]/50 focus:ring-1 focus:ring-[#3A6FF8]/20 transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Buy Date */}
+                    <div>
+                        <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                            Buy Date *
+                        </label>
+                        <input
+                            type="date"
+                            value={form.buyDate}
+                            onChange={(e) => setForm({ ...form, buyDate: e.target.value })}
+                            required
+                            className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-200 focus:outline-none focus:border-[#3A6FF8]/50 focus:ring-1 focus:ring-[#3A6FF8]/20 transition-all"
+                        />
+                    </div>
+
+                    {/* Notes */}
+                    <div>
+                        <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                            Notes (optional)
+                        </label>
+                        <input
+                            type="text"
+                            value={form.notes}
+                            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                            placeholder="e.g. Long term hold, bought on dip"
+                            className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-[#3A6FF8]/50 focus:ring-1 focus:ring-[#3A6FF8]/20 transition-all"
+                        />
+                    </div>
+
+                    {/* Submit */}
+                    <button
+                        type="submit"
+                        className="w-full py-3 bg-[#3A6FF8] hover:bg-[#4A7AE8] text-white font-semibold rounded-xl transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/30 mt-2"
+                    >
+                        {editingHolding ? "Update Holding" : "Add to Portfolio"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ── Main Portfolio Page ──────────────────────────────────────────────
+
+export function PortfolioPage() {
+    const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
+    const [enriched, setEnriched] = useState<EnrichedHolding[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingHolding, setEditingHolding] = useState<PortfolioHolding | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [priceFetchStatus, setPriceFetchStatus] = useState<string>("");
+
+    // Load holdings from localStorage
+    const loadHoldings = useCallback(() => {
+        const h = getHoldings();
+        setHoldings(h);
+    }, []);
+
+    useEffect(() => {
+        loadHoldings();
+    }, [loadHoldings]);
+
+    // Fetch current prices for all holdings
+    const fetchCurrentPrices = useCallback(async () => {
+        if (holdings.length === 0) {
+            setEnriched([]);
+            return;
+        }
+
+        setIsLoading(true);
+        setPriceFetchStatus("Fetching live prices...");
+
+        const results: EnrichedHolding[] = [];
+
+        for (const h of holdings) {
+            const totalInvested = h.buyPrice * h.quantity;
+            try {
+                const stockData = await fetchStockData(h.symbol);
+                const currentPrice = stockData.currentPrice;
+                const currentValue = currentPrice * h.quantity;
+                const pnl = currentValue - totalInvested;
+                const pnlPercent = totalInvested > 0 ? (pnl / totalInvested) * 100 : 0;
+
+                results.push({
+                    ...h,
+                    currentPrice,
+                    totalInvested,
+                    currentValue,
+                    pnl,
+                    pnlPercent,
+                });
+            } catch {
+                results.push({
+                    ...h,
+                    currentPrice: null,
+                    totalInvested,
+                    currentValue: null,
+                    pnl: null,
+                    pnlPercent: null,
+                });
+            }
+        }
+
+        setEnriched(results);
+        setIsLoading(false);
+        setPriceFetchStatus("");
+    }, [holdings]);
+
+    useEffect(() => {
+        fetchCurrentPrices();
+    }, [fetchCurrentPrices]);
+
+    // CRUD handlers
+    const handleSave = (data: HoldingFormData) => {
+        if (editingHolding) {
+            updateHolding(editingHolding.id, {
+                symbol: data.symbol,
+                buyPrice: parseFloat(data.buyPrice),
+                quantity: parseInt(data.quantity),
+                buyDate: data.buyDate,
+                notes: data.notes,
+            });
+        } else {
+            addHolding({
+                symbol: data.symbol,
+                buyPrice: parseFloat(data.buyPrice),
+                quantity: parseInt(data.quantity),
+                buyDate: data.buyDate,
+                notes: data.notes,
+            });
+        }
+        setEditingHolding(null);
+        loadHoldings();
+    };
+
+    const handleEdit = (h: PortfolioHolding) => {
+        setEditingHolding(h);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = (id: string) => {
+        deleteHolding(id);
+        loadHoldings();
+    };
+
+    const handleAddNew = () => {
+        setEditingHolding(null);
+        setIsModalOpen(true);
+    };
+
+    // Portfolio summary
+    const totalInvested = enriched.reduce((sum, h) => sum + h.totalInvested, 0);
+    const totalCurrentValue = enriched.reduce(
+        (sum, h) => sum + (h.currentValue ?? h.totalInvested),
+        0
+    );
+    const totalPnl = totalCurrentValue - totalInvested;
+    const totalPnlPercent = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
+    const isProfitable = totalPnl >= 0;
+
+    return (
+        <div className="min-h-screen text-zinc-100 p-6 relative">
+            {/* Background */}
+            <div className="fixed inset-0 pointer-events-none z-[-1]">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-900/10 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-900/10 rounded-full blur-[120px]" />
+            </div>
+
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-2">
+                    <div>
+                        <h1 className="text-[2rem] font-bold text-zinc-100 mb-1 tracking-tight flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-[#3A6FF8]/10 border border-[#3A6FF8]/20">
+                                <Briefcase className="size-6 text-[#5B8DFF]" />
+                            </div>
+                            My Portfolio
+                        </h1>
+                        <p className="text-zinc-400 text-base ml-[52px]">
+                            Track your holdings with live P&amp;L from NSE
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={fetchCurrentPrices}
+                            disabled={isLoading}
+                            className="flex items-center gap-2 px-4 py-2.5 text-zinc-400 hover:text-zinc-100 hover:bg-white/5 rounded-xl transition-all border border-white/5"
+                        >
+                            <RefreshCw className={`size-4 ${isLoading ? "animate-spin" : ""}`} />
+                            <span className="hidden sm:inline text-sm">Refresh</span>
+                        </button>
+                        <button
+                            onClick={handleAddNew}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[#3A6FF8] hover:bg-[#4A7AE8] text-white font-semibold rounded-xl transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/30"
+                        >
+                            <Plus size={18} />
+                            <span className="hidden sm:inline">Add Stock</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* ── Portfolio Summary Cards ──────────────────────────── */}
+                {holdings.length > 0 && (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Total Invested */}
+                        <div className="bg-[rgba(15,23,42,0.4)] backdrop-blur-xl p-5 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-2 text-zinc-400 mb-3">
+                                <IndianRupee size={15} />
+                                <span className="text-[10px] uppercase tracking-widest font-semibold">
+                                    Total Invested
+                                </span>
+                            </div>
+                            <p className="text-2xl font-bold text-zinc-100">
+                                ₹{totalInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                            </p>
+                            <p className="text-xs text-zinc-500 mt-1">
+                                {holdings.length} stock{holdings.length !== 1 ? "s" : ""}
+                            </p>
+                        </div>
+
+                        {/* Current Value */}
+                        <div className="bg-[rgba(15,23,42,0.4)] backdrop-blur-xl p-5 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-2 text-zinc-400 mb-3">
+                                <BarChart3 size={15} />
+                                <span className="text-[10px] uppercase tracking-widest font-semibold">
+                                    Current Value
+                                </span>
+                            </div>
+                            <p className="text-2xl font-bold text-zinc-100">
+                                {isLoading ? (
+                                    <Loader2 className="size-5 animate-spin text-zinc-500" />
+                                ) : (
+                                    `₹${totalCurrentValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
+                                )}
+                            </p>
+                            <p className="text-xs text-zinc-500 mt-1">Live NSE prices</p>
+                        </div>
+
+                        {/* Total P&L */}
+                        <div
+                            className={`backdrop-blur-xl p-5 rounded-2xl border ${isProfitable
+                                    ? "bg-emerald-500/5 border-emerald-500/15"
+                                    : "bg-red-500/5 border-red-500/15"
+                                }`}
+                        >
+                            <div className="flex items-center gap-2 text-zinc-400 mb-3">
+                                {isProfitable ? <TrendingUp size={15} /> : <TrendingDown size={15} />}
+                                <span className="text-[10px] uppercase tracking-widest font-semibold">
+                                    Total P&amp;L
+                                </span>
+                            </div>
+                            <p
+                                className={`text-2xl font-bold ${isProfitable ? "text-emerald-400" : "text-red-400"
+                                    }`}
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="size-5 animate-spin text-zinc-500" />
+                                ) : (
+                                    <>
+                                        {isProfitable ? "+" : ""}₹
+                                        {Math.abs(totalPnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                                    </>
+                                )}
+                            </p>
+                            <p
+                                className={`text-xs mt-1 font-medium ${isProfitable ? "text-emerald-500/70" : "text-red-500/70"
+                                    }`}
+                            >
+                                {isProfitable ? "+" : ""}
+                                {totalPnlPercent.toFixed(2)}%
+                            </p>
+                        </div>
+
+                        {/* P&L Indicator */}
+                        <div className="bg-[rgba(15,23,42,0.4)] backdrop-blur-xl p-5 rounded-2xl border border-white/5 flex flex-col items-center justify-center">
+                            <div
+                                className={`p-3 rounded-full mb-2 ${isProfitable ? "bg-emerald-500/10" : "bg-red-500/10"
+                                    }`}
+                            >
+                                {isProfitable ? (
+                                    <ArrowUpRight className="size-8 text-emerald-400" />
+                                ) : (
+                                    <ArrowDownRight className="size-8 text-red-400" />
+                                )}
+                            </div>
+                            <p
+                                className={`text-sm font-semibold ${isProfitable ? "text-emerald-400" : "text-red-400"
+                                    }`}
+                            >
+                                {isProfitable ? "In Profit" : "In Loss"}
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Holdings Table ──────────────────────────────────── */}
+                {holdings.length === 0 ? (
+                    <div className="h-[350px] flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20">
+                        <Briefcase className="size-12 text-zinc-700 mb-4" />
+                        <p className="text-zinc-400 text-lg font-medium mb-1">
+                            No holdings yet
+                        </p>
+                        <p className="text-zinc-500 text-sm mb-5">
+                            Add your first stock to start tracking your portfolio
+                        </p>
+                        <button
+                            onClick={handleAddNew}
+                            className="flex items-center gap-2 px-6 py-3 bg-[#3A6FF8] hover:bg-[#4A7AE8] text-white font-semibold rounded-xl transition-all shadow-sm shadow-blue-500/20"
+                        >
+                            <Plus size={18} />
+                            Add Your First Stock
+                        </button>
+                    </div>
+                ) : (
+                    <div className="bg-[rgba(15,23,42,0.4)] backdrop-blur-xl rounded-2xl border border-white/5 overflow-hidden">
+                        {/* Loading bar */}
+                        {isLoading && (
+                            <div className="px-5 py-2 bg-[#3A6FF8]/5 border-b border-[#3A6FF8]/10 flex items-center gap-2">
+                                <Loader2 className="size-3 text-[#5B8DFF] animate-spin" />
+                                <span className="text-xs text-[#5B8DFF]">{priceFetchStatus}</span>
+                            </div>
+                        )}
+
+                        {/* Table */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-white/5">
+                                        <th className="text-left px-5 py-3.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-widest">
+                                            Stock
+                                        </th>
+                                        <th className="text-right px-4 py-3.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-widest">
+                                            Qty
+                                        </th>
+                                        <th className="text-right px-4 py-3.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-widest">
+                                            Buy Price
+                                        </th>
+                                        <th className="text-right px-4 py-3.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-widest">
+                                            Current
+                                        </th>
+                                        <th className="text-right px-4 py-3.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-widest">
+                                            Invested
+                                        </th>
+                                        <th className="text-right px-4 py-3.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-widest">
+                                            P&amp;L
+                                        </th>
+                                        <th className="text-right px-4 py-3.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-widest">
+                                            P&amp;L %
+                                        </th>
+                                        <th className="text-center px-4 py-3.5 text-[10px] text-zinc-500 font-semibold uppercase tracking-widest">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {enriched.map((h) => {
+                                        const hasPnl = h.pnl !== null;
+                                        const isProfit = (h.pnl ?? 0) >= 0;
+                                        return (
+                                            <tr
+                                                key={h.id}
+                                                className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                                            >
+                                                {/* Stock */}
+                                                <td className="px-5 py-4">
+                                                    <p className="text-sm font-semibold text-zinc-200">
+                                                        {h.symbol}
+                                                    </p>
+                                                    <p className="text-[10px] text-zinc-500 mt-0.5">
+                                                        {h.buyDate}
+                                                        {h.notes ? ` · ${h.notes}` : ""}
+                                                    </p>
+                                                </td>
+
+                                                {/* Qty */}
+                                                <td className="text-right px-4 py-4 text-sm text-zinc-300 font-medium">
+                                                    {h.quantity}
+                                                </td>
+
+                                                {/* Buy Price */}
+                                                <td className="text-right px-4 py-4 text-sm text-zinc-300">
+                                                    ₹{h.buyPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                                </td>
+
+                                                {/* Current Price */}
+                                                <td className="text-right px-4 py-4 text-sm">
+                                                    {h.currentPrice !== null ? (
+                                                        <span className="text-zinc-200 font-medium">
+                                                            ₹{h.currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-zinc-600">—</span>
+                                                    )}
+                                                </td>
+
+                                                {/* Invested */}
+                                                <td className="text-right px-4 py-4 text-sm text-zinc-400">
+                                                    ₹{h.totalInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                                                </td>
+
+                                                {/* P&L */}
+                                                <td className="text-right px-4 py-4 text-sm font-semibold">
+                                                    {hasPnl ? (
+                                                        <span className={isProfit ? "text-emerald-400" : "text-red-400"}>
+                                                            {isProfit ? "+" : ""}₹
+                                                            {Math.abs(h.pnl!).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-zinc-600">—</span>
+                                                    )}
+                                                </td>
+
+                                                {/* P&L % */}
+                                                <td className="text-right px-4 py-4">
+                                                    {hasPnl ? (
+                                                        <span
+                                                            className={`inline-flex items-center gap-0.5 text-xs font-semibold px-2 py-1 rounded-lg ${isProfit
+                                                                    ? "bg-emerald-500/10 text-emerald-400"
+                                                                    : "bg-red-500/10 text-red-400"
+                                                                }`}
+                                                        >
+                                                            {isProfit ? (
+                                                                <ArrowUpRight size={12} />
+                                                            ) : (
+                                                                <ArrowDownRight size={12} />
+                                                            )}
+                                                            {isProfit ? "+" : ""}
+                                                            {h.pnlPercent!.toFixed(2)}%
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-zinc-600 text-xs">—</span>
+                                                    )}
+                                                </td>
+
+                                                {/* Actions */}
+                                                <td className="text-center px-4 py-4">
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <button
+                                                            onClick={() => handleEdit(h)}
+                                                            className="p-2 rounded-lg hover:bg-[#3A6FF8]/10 text-zinc-500 hover:text-[#5B8DFF] transition-colors"
+                                                            title="Edit"
+                                                        >
+                                                            <Pencil size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(h.id)}
+                                                            className="p-2 rounded-lg hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-colors"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* Footer */}
+                <div className="mt-8 pt-6 border-t border-[rgba(100,150,255,0.1)]">
+                    <p className="text-center text-[10px] text-zinc-500 uppercase tracking-widest">
+                        QuantPulse India • Portfolio data stored locally in your browser • {new Date().getFullYear()}
+                    </p>
+                </div>
+            </div>
+
+            {/* Add / Edit Modal */}
+            <HoldingModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingHolding(null);
+                }}
+                onSave={handleSave}
+                editingHolding={editingHolding}
+            />
+        </div>
+    );
+}

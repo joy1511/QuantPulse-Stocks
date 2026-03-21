@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import { StockInput } from "@/app/components/StockInput";
 import { StockChart } from "@/app/components/StockChart";
 import { MarketContextStrip } from "@/app/components/MarketContextStrip";
+import { MarketMovers } from "@/app/components/MarketMovers";
 import {
   fetchStockData,
   fetchV2Analysis,
@@ -134,6 +135,9 @@ export function DashboardPage() {
           </p>
         </div>
 
+        {/* Market Movers — Top Gainers + Losers */}
+        <MarketMovers onStockClick={handleSearch} />
+
         {/* Stock Search */}
         <div className="relative z-10">
           <StockInput onSearch={handleSearch} disabled={isLoading || isV2Loading} />
@@ -238,7 +242,7 @@ export function DashboardPage() {
                         <span className="text-[10px] uppercase tracking-widest font-semibold">Regime (HMM)</span>
                       </div>
                       <p className={`text-xl font-bold ${v2Data.regime.includes("Bull") ? "text-emerald-400" :
-                          v2Data.regime.includes("Bear") ? "text-red-400" : "text-blue-400"
+                        v2Data.regime.includes("Bear") ? "text-red-400" : "text-blue-400"
                         }`}>{v2Data.regime}</p>
                       <p className="text-xs text-zinc-500 mt-1">
                         Confidence: {(v2Data.details.regime_detection.confidence * 100).toFixed(0)}%
@@ -269,7 +273,7 @@ export function DashboardPage() {
                         <div className="flex justify-between text-xs">
                           <span className="text-zinc-500">RSI</span>
                           <span className={`font-semibold ${v2Data.details.lstm.features.rsi > 70 ? "text-red-400" :
-                              v2Data.details.lstm.features.rsi < 30 ? "text-emerald-400" : "text-zinc-300"
+                            v2Data.details.lstm.features.rsi < 30 ? "text-emerald-400" : "text-zinc-300"
                             }`}>{v2Data.details.lstm.features.rsi?.toFixed(1) ?? "—"}</span>
                         </div>
                         <div className="flex justify-between text-xs">

@@ -21,7 +21,6 @@ import yfinance as yf
 import pandas as pd
 
 import asyncio
-from app.services.serper_price_service import serper_price_service
 
 logger = logging.getLogger(__name__)
 
@@ -362,84 +361,94 @@ def _generate_synthetic_data(ticker: str, period: str = "2y") -> pd.DataFrame:
 
 async def _get_data_async(ticker: str, period: str = "2y") -> pd.DataFrame | None:
     """
-    Orchestrates data fetching with intelligent fallback and 24-hour caching:
-    0. Check 24-hour cache first (avoid rate limits)
-    1. yfinance (works locally, may fail on cloud)
-    2. IndianAPI (FREE NSE/BSE API, works on cloud)
-    3. nsepython (NSE-specific, works on cloud, no API key)
-    4. Serper API (live price only)
-    5. TwelveData/Finnhub (if API keys provided)
-    6. Synthetic data (final fallback)
+    Orchestrates data fetching with intelligent fallback and 24-hour caching.
+
+    LOCAL (development):
+      0. Cache → 1. yfinance → 2. IndianAPI → 3. nsepython → 4. Synthetic
+
+    DEPLOYED (IS_CLOUD=True):
+      0. Cache → 1. IndianAPI → 2. nsepython → 3. yfinance → 4. Synthetic
+
+    This ensures yfinance is the primary source locally (fast, reliable)
+    and IndianAPI is the primary source on cloud (yfinance often blocked).
     """
-    # 0. Check 24-hour cache first (most important for rate limit avoidance)
+    from app.config import IS_CLOUD
+
+    # 0. Check 24-hour cache first
     cached_data = get_from_cache(ticker, f"historical_{period}", max_age_hours=24)
     if cached_data is not None:
         return cached_data
-    
-    # 1. Try yfinance (sync)
-    df = _download_safe_sync(ticker, period)
-    if df is not None and not df.empty:
-        logger.info(f"✅ Data source: yfinance for {ticker}")
-        save_to_cache(ticker, f"historical_{period}", df)
-        return df
-    
-    # 2. Try IndianAPI (FREE NSE/BSE API - works on cloud!)
-    if INDIANAPI_AVAILABLE and not ticker.startswith("^"):
-        logger.info(f"🔄 yfinance failed, trying IndianAPI for {ticker}...")
-        try:
-            historical_data = await _indianapi_provider.get_historical_data(ticker, period=period)
-            if historical_data and historical_data.data:
-                # Convert to DataFrame
-                df = pd.DataFrame(historical_data.data)
-                df["Date"] = pd.to_datetime(df["date"])
-                df.set_index("Date", inplace=True)
-                df.drop(columns=["date"], inplace=True, errors='ignore')
-                
-                # Rename columns to match yfinance format
-                df.rename(columns={
-                    "open": "Open",
-                    "high": "High",
-                    "low": "Low",
-                    "close": "Close",
-                    "volume": "Volume"
-                }, inplace=True)
-                
-                # Ensure numeric
-                for col in ["Open", "High", "Low", "Close", "Volume"]:
-                    if col in df.columns:
-                        df[col] = pd.to_numeric(df[col], errors='coerce')
-                
-                if not df.empty:
+
+    def _indianapi_to_df(historical_data) -> pd.DataFrame | None:
+        """Helper: convert IndianAPI HistoricalData to DataFrame."""
+        if not historical_data or not historical_data.data:
+            return None
+        df = pd.DataFrame(historical_data.data)
+        df["Date"] = pd.to_datetime(df["date"])
+        df.set_index("Date", inplace=True)
+        df.drop(columns=["date"], inplace=True, errors='ignore')
+        df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"}, inplace=True)
+        for col in ["Open", "High", "Low", "Close", "Volume"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        return df if not df.empty else None
+
+    if IS_CLOUD:
+        # ── CLOUD PATH: IndianAPI first ──────────────────────────────────
+        if INDIANAPI_AVAILABLE and not ticker.startswith("^"):
+            logger.info(f"☁️ Cloud mode: trying IndianAPI for {ticker}...")
+            try:
+                df = _indianapi_to_df(await _indianapi_provider.get_historical_data(ticker, period=period))
+                if df is not None:
                     logger.info(f"✅ Data source: IndianAPI for {ticker}")
                     save_to_cache(ticker, f"historical_{period}", df)
                     return df
-        except Exception as e:
-            logger.warning(f"⚠️ IndianAPI failed for {ticker}: {e}")
-    
-    # 3. Try nsepython (NSE stocks only, no API key needed!)
-    if not ticker.startswith("^"):
-        logger.info(f"🔄 IndianAPI failed, trying nsepython for {ticker}...")
-        df = await _fetch_from_nsepython(ticker, period)
+            except Exception as e:
+                logger.warning(f"⚠️ IndianAPI failed for {ticker}: {e}")
+
+        if not ticker.startswith("^"):
+            df = await _fetch_from_nsepython(ticker, period)
+            if df is not None and not df.empty:
+                logger.info(f"✅ Data source: nsepython for {ticker}")
+                save_to_cache(ticker, f"historical_{period}", df)
+                return df
+
+        # yfinance as last resort on cloud
+        df = _download_safe_sync(ticker, period)
         if df is not None and not df.empty:
-            logger.info(f"✅ Data source: nsepython for {ticker}")
+            logger.info(f"✅ Data source: yfinance (cloud fallback) for {ticker}")
             save_to_cache(ticker, f"historical_{period}", df)
             return df
-    
-    # 4. Try Serper API for live price (current price only, not historical)
-    if not ticker.startswith("^"):
-        logger.info(f"🔄 nsepython failed, trying Serper API for live price of {ticker}...")
-        serper_data = await serper_price_service.get_live_price(ticker)
-        
-        if serper_data and serper_data.get("price"):
-            logger.info(f"✅ Got live price from Serper: ₹{serper_data['price']}")
-            # Note: Serper only provides current price, not historical
-            # Continue to synthetic data fallback
-            
-    # 5. FINAL FALLBACK: Synthetic Data
+
+    else:
+        # ── LOCAL PATH: yfinance first ───────────────────────────────────
+        df = _download_safe_sync(ticker, period)
+        if df is not None and not df.empty:
+            logger.info(f"✅ Data source: yfinance (local) for {ticker}")
+            save_to_cache(ticker, f"historical_{period}", df)
+            return df
+
+        if INDIANAPI_AVAILABLE and not ticker.startswith("^"):
+            logger.info(f"🔄 yfinance failed, trying IndianAPI for {ticker}...")
+            try:
+                df = _indianapi_to_df(await _indianapi_provider.get_historical_data(ticker, period=period))
+                if df is not None:
+                    logger.info(f"✅ Data source: IndianAPI for {ticker}")
+                    save_to_cache(ticker, f"historical_{period}", df)
+                    return df
+            except Exception as e:
+                logger.warning(f"⚠️ IndianAPI failed for {ticker}: {e}")
+
+        if not ticker.startswith("^"):
+            df = await _fetch_from_nsepython(ticker, period)
+            if df is not None and not df.empty:
+                logger.info(f"✅ Data source: nsepython for {ticker}")
+                save_to_cache(ticker, f"historical_{period}", df)
+                return df
+
+    # FINAL FALLBACK: Synthetic Data
     logger.warning(f"⚠️ All data sources failed for {ticker}, using SIMULATED data")
-    df = _generate_synthetic_data(ticker, period)
-    # Don't cache synthetic data (we want to retry real sources next time)
-    return df
+    return _generate_synthetic_data(ticker, period)
 
 
 async def fetch_market_context(ticker: str) -> dict:
