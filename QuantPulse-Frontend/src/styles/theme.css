@@ -162,6 +162,8 @@
 
   body {
     @apply bg-background text-foreground;
+    background-color: #121212;
+    color: #F0F0F0;
   }
 
   /**

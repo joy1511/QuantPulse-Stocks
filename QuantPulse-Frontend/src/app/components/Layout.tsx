@@ -21,17 +21,17 @@ export function Layout() {
   };
 
   return (
-    <div className="min-h-screen text-zinc-100">
+    <div className="min-h-screen text-[#F0F0F0]">
       {/* Navigation Bar */}
-      <nav className="border-b border-[rgba(100,150,255,0.1)] bg-[rgba(15,23,42,0.7)] backdrop-blur-md sticky top-0 z-50">
+      <nav className="border-b border-[rgba(74, 158, 255, 0.15)] bg-[rgba(30, 30, 30, 0.9)] backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#3A6FF8] shadow-sm shadow-blue-500/20">
+              <div className="p-2 rounded-lg bg-[#1A6FD4] shadow-sm shadow-blue-500/20">
                 <BarChart3 className="size-6 text-white" />
               </div>
-              <span className="text-xl text-zinc-100">QuantPulse India</span>
+              <span className="text-xl text-[#F0F0F0]">QuantPulse India</span>
             </Link>
 
             {/* Navigation Links */}
@@ -44,8 +44,8 @@ export function Layout() {
                     key={item.path}
                     to={item.path}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${isActive
-                      ? 'bg-[#3A6FF8] text-white shadow-sm shadow-blue-500/20'
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-[rgba(58,111,248,0.1)]'
+                      ? 'bg-[#1A6FD4] text-white shadow-sm shadow-blue-500/20'
+                      : 'text-[#A0A0A0] hover:text-[#F0F0F0] hover:bg-[rgba(74,158,255,0.1)]'
                       }`}
                   >
                     <Icon className="size-4" />
@@ -60,15 +60,15 @@ export function Layout() {
               {user ? (
                 // Logged in - show user info and logout
                 <>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(58,111,248,0.1)] rounded-lg border border-[rgba(58,111,248,0.2)]">
-                    <User className="size-4 text-[#5B8DFF]" />
-                    <span className="text-sm text-zinc-300 font-medium">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[rgba(74,158,255,0.1)] rounded-lg border border-[rgba(74, 158, 255, 0.12)]">
+                    <User className="size-4 text-[#4A9EFF]" />
+                    <span className="text-sm text-[#F0F0F0] font-medium">
                       {user.full_name || user.email}
                     </span>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-2 text-zinc-400 hover:text-zinc-100 hover:bg-[rgba(239,68,68,0.1)] rounded-lg transition-all font-medium"
+                    className="flex items-center gap-2 px-4 py-2 text-[#A0A0A0] hover:text-[#F0F0F0] hover:bg-[rgba(239,68,68,0.1)] rounded-lg transition-all font-medium"
                   >
                     <LogOut className="size-4" />
                     <span className="hidden md:inline">Logout</span>
@@ -79,13 +79,13 @@ export function Layout() {
                 <>
                   <Link
                     to="/signin"
-                    className="px-4 py-2 text-zinc-400 hover:text-zinc-100 transition-colors font-medium"
+                    className="px-4 py-2 text-[#A0A0A0] hover:text-[#F0F0F0] transition-colors font-medium"
                   >
                     Sign In
                   </Link>
                   <Link
                     to="/signup"
-                    className="px-5 py-2 bg-[#3A6FF8] hover:bg-[#4A7AE8] text-white rounded-lg transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/30 font-medium"
+                    className="px-5 py-2 bg-[#1A6FD4] hover:bg-[#2A7FE8] text-white rounded-lg transition-all shadow-sm shadow-blue-500/20 hover:shadow-blue-500/30 font-medium"
                   >
                     Get Started
                   </Link>

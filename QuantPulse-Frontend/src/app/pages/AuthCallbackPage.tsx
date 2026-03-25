@@ -41,8 +41,8 @@ export function AuthCallbackPage() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <Loader2 className="size-12 animate-spin text-[#3A6FF8] mx-auto mb-4" />
-        <p className="text-zinc-300 text-lg">Completing sign in...</p>
+        <Loader2 className="size-12 animate-spin text-[#4A9EFF] mx-auto mb-4" />
+        <p className="text-[#A0A0A0] text-lg">Completing sign in...</p>
       </div>
     </div>
   );

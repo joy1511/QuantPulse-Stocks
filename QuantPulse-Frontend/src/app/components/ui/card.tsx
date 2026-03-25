@@ -8,11 +8,11 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: "rounded-xl border bg-[rgba(15,23,42,0.45)] border-[rgba(100,150,255,0.15)] text-zinc-100 shadow-lg shadow-black/5",
-        elevated: "rounded-[1.25rem] border border-[rgba(100,150,255,0.18)] bg-[rgba(15,23,42,0.5)] text-zinc-100 shadow-xl shadow-blue-900/5 hover:shadow-blue-900/10 hover:bg-[rgba(15,23,42,0.55)] hover:-translate-y-0.5",
-        subtle: "rounded-[0.75rem] border border-[rgba(100,150,255,0.1)] bg-[rgba(15,23,42,0.35)] text-zinc-100 shadow-sm",
-        flat: "rounded-2xl border-0 bg-[rgba(15,23,42,0.25)] text-zinc-100",
-        glass: "rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(15,23,42,0.3)] text-zinc-100 shadow-lg shadow-black/5 backdrop-blur-2xl",
+        default: "rounded-xl border bg-[rgba(30, 30, 30, 0.9)] border-[rgba(74, 158, 255, 0.15)] text-[#F0F0F0] shadow-lg shadow-black/5",
+        elevated: "rounded-[1.25rem] border border-[rgba(74, 158, 255, 0.15)] bg-[rgba(30, 30, 30, 0.9)] text-[#F0F0F0] shadow-xl shadow-blue-900/5 hover:shadow-blue-900/10 hover:bg-[rgba(30, 30, 30, 0.9)] hover:-translate-y-0.5",
+        subtle: "rounded-[0.75rem] border border-[rgba(74, 158, 255, 0.15)] bg-[rgba(30, 30, 30, 0.9)] text-[#F0F0F0] shadow-sm",
+        flat: "rounded-2xl border-0 bg-[rgba(30, 30, 30, 0.9)] text-[#F0F0F0]",
+        glass: "rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(30, 30, 30, 0.9)] text-[#F0F0F0] shadow-lg shadow-black/5 backdrop-blur-2xl",
       },
     },
     defaultVariants: {

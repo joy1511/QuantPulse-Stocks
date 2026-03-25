@@ -101,19 +101,19 @@ export function InterconnectivityMap() {
             {/* Header / Actions */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-                        <Activity className="size-6 text-[#3A6FF8]" />
+                    <h1 className="text-2xl font-bold text-[#F0F0F0] flex items-center gap-2">
+                        <Activity className="size-6 text-[#4A9EFF]" />
                         Market Topology
                     </h1>
-                    <p className="text-zinc-400 text-sm">Real-time correlation network & contagion analysis</p>
+                    <p className="text-[#A0A0A0] text-sm">Real-time correlation network & contagion analysis</p>
                 </div>
 
                 <div className="flex gap-3">
                     <button
                         onClick={simulateShock}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all border ${shockActive
-                            ? 'bg-red-500/10 border-red-500 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-                            : 'bg-[#3A6FF8]/10 border-[#3A6FF8]/50 text-[#3A6FF8] hover:bg-[#3A6FF8]/20'
+                            ? 'bg-[#E05252]/10 border-red-500 text-[#E05252] shadow-[0_0_15px_rgba(239,68,68,0.3)]'
+                            : 'bg-[#1A6FD4]/10 border-[#1A6FD4]/50 text-[#4A9EFF] hover:bg-[#1A6FD4]/20'
                             }`}
                     >
                         <Zap className="size-4" />
@@ -126,11 +126,11 @@ export function InterconnectivityMap() {
 
                 {/* Main Graph Card */}
                 <div
-                    className="flex-1 relative rounded-xl border border-[rgba(100,150,255,0.1)] bg-[rgba(15,23,42,0.4)] backdrop-blur-sm overflow-hidden shadow-lg"
+                    className="flex-1 relative rounded-xl border border-[rgba(74, 158, 255, 0.15)] bg-[rgba(30, 30, 30, 0.9)] backdrop-blur-sm overflow-hidden shadow-lg"
                     ref={containerRef}
                 >
                     {/* Legend/Overlay - Enhanced styling */}
-                    <div className="absolute top-4 left-4 z-10 bg-gradient-to-br from-black/70 to-black/50 backdrop-blur-md p-4 rounded-xl border border-white/30 text-xs text-zinc-200 shadow-2xl">
+                    <div className="absolute top-4 left-4 z-10 bg-gradient-to-br from-black/70 to-black/50 backdrop-blur-md p-4 rounded-xl border border-white/30 text-xs text-[#F0F0F0] shadow-2xl">
                         <div className="text-sm font-bold mb-3 text-white">Sector Legend</div>
                         <div className="flex items-center gap-2 mb-2">
                             <span className="w-4 h-4 rounded-full bg-[#8B5CF6] shadow-lg shadow-purple-500/60 border border-purple-300/30"></span> 
@@ -297,26 +297,26 @@ export function InterconnectivityMap() {
                 {/* Sidebar Panel */}
                 <div className="w-80 flex flex-col gap-4">
                     {/* Stats Widget */}
-                    <div className="p-4 rounded-xl border border-[rgba(100,150,255,0.1)] bg-[rgba(15,23,42,0.4)] backdrop-blur-sm">
-                        <h3 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+                    <div className="p-4 rounded-xl border border-[rgba(74, 158, 255, 0.15)] bg-[rgba(30, 30, 30, 0.9)] backdrop-blur-sm">
+                        <h3 className="text-sm font-semibold text-[#F0F0F0] mb-4 flex items-center gap-2">
                             <Info className="size-4 text-[#06B6D4]" /> Network Metrics
                         </h3>
                         <div className="space-y-4">
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-zinc-400">Total Stocks</span>
-                                <span className="text-blue-400 font-mono">{data.nodes.length}</span>
+                                <span className="text-[#A0A0A0]">Total Stocks</span>
+                                <span className="text-[#4A9EFF] font-mono">{data.nodes.length}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-zinc-400">Correlations</span>
+                                <span className="text-[#A0A0A0]">Correlations</span>
                                 <span className="text-purple-400 font-mono">{data.links.length}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-zinc-400">Sectors</span>
-                                <span className="text-emerald-400 font-mono">5</span>
+                                <span className="text-[#A0A0A0]">Sectors</span>
+                                <span className="text-[#4CAF7D] font-mono">5</span>
                             </div>
                             <div className="flex justify-between items-center text-sm">
-                                <span className="text-zinc-400">Avg. Correlation</span>
-                                <span className="text-amber-400 font-mono">
+                                <span className="text-[#A0A0A0]">Avg. Correlation</span>
+                                <span className="text-[#E8A838] font-mono">
                                     {data.links.length > 0 
                                         ? (data.links.reduce((sum, l) => sum + (l.weight || 0), 0) / data.links.length * 100).toFixed(1) + '%'
                                         : 'N/A'}
@@ -326,30 +326,30 @@ export function InterconnectivityMap() {
                     </div>
 
                     {/* Dynamic Context Panel */}
-                    <div className={`flex-1 p-4 rounded-xl border border-[rgba(100,150,255,0.1)] bg-[rgba(15,23,42,0.4)] backdrop-blur-sm transition-all ${selectedNode ? 'opacity-100' : 'opacity-60 grayscale'}`}>
-                        <h3 className="text-sm font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+                    <div className={`flex-1 p-4 rounded-xl border border-[rgba(74, 158, 255, 0.15)] bg-[rgba(30, 30, 30, 0.9)] backdrop-blur-sm transition-all ${selectedNode ? 'opacity-100' : 'opacity-60 grayscale'}`}>
+                        <h3 className="text-sm font-semibold text-[#F0F0F0] mb-4 flex items-center gap-2">
                             <ShieldCheck className="size-4 text-[#10B981]" /> Stock Analysis
                         </h3>
 
                         {selectedNode ? (
                             <div className="space-y-4">
                                 <div className="text-xl font-bold text-white">{selectedNode.id}</div>
-                                <div className="text-sm text-zinc-400">{selectedNode.sector} Sector</div>
+                                <div className="text-sm text-[#A0A0A0]">{selectedNode.sector} Sector</div>
 
                                 <div className="space-y-2">
-                                    <div className="text-xs text-zinc-400 uppercase tracking-wider">Network Connections</div>
-                                    <div className="text-2xl font-bold text-[#3A6FF8]">
+                                    <div className="text-xs text-[#A0A0A0] uppercase tracking-wider">Network Connections</div>
+                                    <div className="text-2xl font-bold text-[#4A9EFF]">
                                         {data.links.filter(l => 
                                             (typeof l.source === 'object' ? l.source.id : l.source) === selectedNode.id ||
                                             (typeof l.target === 'object' ? l.target.id : l.target) === selectedNode.id
                                         ).length}
                                     </div>
-                                    <div className="text-xs text-zinc-400">Direct correlations</div>
+                                    <div className="text-xs text-[#A0A0A0]">Direct correlations</div>
                                 </div>
 
                                 {/* Strongest Correlations */}
-                                <div className="p-3 bg-zinc-900/50 rounded-lg border border-white/5">
-                                    <div className="text-xs text-zinc-400 mb-2">Strongest Correlations</div>
+                                <div className="p-3 bg-[#1E1E1E]/50 rounded-lg border border-[#2A2A2A]">
+                                    <div className="text-xs text-[#A0A0A0] mb-2">Strongest Correlations</div>
                                     <div className="space-y-1">
                                         {data.links
                                             .filter(l => 
@@ -364,8 +364,8 @@ export function InterconnectivityMap() {
                                                     : (typeof link.source === 'object' ? link.source.id : link.source);
                                                 return (
                                                     <div key={idx} className="flex justify-between text-xs">
-                                                        <span className="text-zinc-300">{otherId}</span>
-                                                        <span className="text-[#3A6FF8] font-mono">{((link.weight || 0) * 100).toFixed(1)}%</span>
+                                                        <span className="text-[#A0A0A0]">{otherId}</span>
+                                                        <span className="text-[#4A9EFF] font-mono">{((link.weight || 0) * 100).toFixed(1)}%</span>
                                                     </div>
                                                 );
                                             })}
@@ -373,7 +373,7 @@ export function InterconnectivityMap() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="h-full flex items-center justify-center text-zinc-500 text-sm text-center">
+                            <div className="h-full flex items-center justify-center text-[#A0A0A0] text-sm text-center">
                                 Select a node to view <br /> correlation analysis
                             </div>
                         )}

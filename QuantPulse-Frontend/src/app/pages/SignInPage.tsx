@@ -51,23 +51,23 @@ export function SignInPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link to="/" className="flex items-center justify-center gap-3 mb-8">
-          <div className="p-2 rounded-lg bg-[#3A6FF8] shadow-sm shadow-blue-500/20">
+          <div className="p-2 rounded-lg bg-[#1A6FD4] shadow-sm shadow-blue-500/20">
             <BarChart3 className="size-6 text-white" />
           </div>
-          <span className="text-2xl text-zinc-100">QuantPulse India</span>
+          <span className="text-2xl text-[#F0F0F0]">QuantPulse India</span>
         </Link>
 
-        <Card variant="elevated" className="p-9 shadow-2xl shadow-blue-900/10 border-[#3A6FF8]/20">
+        <Card variant="elevated" className="p-9 shadow-2xl shadow-blue-900/10 border-[#1A6FD4]/20">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-zinc-100 mb-2 tracking-tight">Welcome Back</h1>
-            <p className="text-zinc-400">Sign in to access your dashboard</p>
+            <h1 className="text-3xl font-bold text-[#F0F0F0] mb-2 tracking-tight">Welcome Back</h1>
+            <p className="text-[#A0A0A0]">Sign in to access your dashboard</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-zinc-300 font-medium">Email Address</Label>
+              <Label htmlFor="email" className="text-[#A0A0A0] font-medium">Email Address</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-zinc-500" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-[#A0A0A0]" />
                 <Input
                   id="email"
                   type="email"
@@ -82,9 +82,9 @@ export function SignInPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-zinc-300 font-medium">Password</Label>
+              <Label htmlFor="password" className="text-[#A0A0A0] font-medium">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-zinc-500" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-[#A0A0A0]" />
                 <Input
                   id="password"
                   type="password"
@@ -102,11 +102,11 @@ export function SignInPage() {
               <label className="flex items-center gap-2 cursor-pointer group">
                 <input
                   type="checkbox"
-                  className="size-4 rounded border-[rgba(100,150,255,0.2)] bg-[rgba(15,23,42,0.6)] text-[#3A6FF8]"
+                  className="size-4 rounded border-[rgba(74, 158, 255, 0.15)] bg-[rgba(30, 30, 30, 0.9)] text-[#4A9EFF]"
                 />
-                <span className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors">Remember me</span>
+                <span className="text-sm text-[#A0A0A0] transition-colors">Remember me</span>
               </label>
-              <Link to="#" className="text-sm text-[#5B8DFF] hover:text-[#7AA3FF] font-medium">
+              <Link to="#" className="text-sm text-[#4A9EFF] hover:text-[#7AA3FF] font-medium">
                 Forgot password?
               </Link>
             </div>
@@ -138,10 +138,10 @@ export function SignInPage() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[rgba(100,150,255,0.1)]"></div>
+              <div className="w-full border-t border-[rgba(74, 158, 255, 0.15)]"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[rgba(15,23,42,0.9)] text-zinc-400">Or continue with</span>
+              <span className="px-4 bg-[rgba(30, 30, 30, 0.9)] text-[#A0A0A0]">Or continue with</span>
             </div>
           </div>
 
@@ -149,7 +149,7 @@ export function SignInPage() {
           <Button
             type="button"
             variant="outline"
-            className="w-full h-11 text-base border-[rgba(100,150,255,0.2)] hover:bg-[rgba(58,111,248,0.1)] hover:border-[rgba(100,150,255,0.3)]"
+            className="w-full h-11 text-base border-[rgba(74, 158, 255, 0.15)] hover:bg-[rgba(74,158,255,0.1)] hover:border-[rgba(74, 158, 255, 0.15)]"
             onClick={() => {
               alert('Google Sign-In requires OAuth setup.\n\nTo enable:\n1. Go to Google Cloud Console\n2. Create OAuth credentials\n3. Add credentials to .env file\n\nFor now, please use email/password login.');
             }}
@@ -176,23 +176,23 @@ export function SignInPage() {
             Sign in with Google (Setup Required)
           </Button>
 
-          <div className="mt-8 pt-6 border-t border-[rgba(100,150,255,0.1)] text-center">
-            <p className="text-sm text-zinc-400">
+          <div className="mt-8 pt-6 border-t border-[rgba(74, 158, 255, 0.15)] text-center">
+            <p className="text-sm text-[#A0A0A0]">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-[#5B8DFF] hover:text-[#7AA3FF] font-medium">
+              <Link to="/signup" className="text-[#4A9EFF] hover:text-[#7AA3FF] font-medium">
                 Sign up
               </Link>
             </p>
           </div>
 
           <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-            <p className="text-xs text-center text-green-200">
+            <p className="text-xs text-center text-[#4CAF7D]">
               <strong>Demo Mode:</strong> Enter any email and password to sign in instantly!
             </p>
           </div>
         </Card>
 
-        <p className="text-center text-xs text-zinc-500 mt-6">
+        <p className="text-center text-xs text-[#A0A0A0] mt-6">
           By signing in, you agree to our Terms of Service and Privacy Policy.
         </p>
       </div>

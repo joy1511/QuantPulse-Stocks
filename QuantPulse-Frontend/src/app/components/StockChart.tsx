@@ -1,89 +1,118 @@
-import { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useMemo } from 'react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, ReferenceLine,
+} from 'recharts';
 import { Card } from '@/app/components/ui/card';
 
+interface OHLCPoint {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
 interface StockChartProps {
-  data: Array<{ time: string; price: number }>;
+  ohlc: OHLCPoint[];
   stockName: string;
 }
 
-export function StockChart({ data, stockName }: StockChartProps) {
-  const [timeRange, setTimeRange] = useState('1D');
+const RANGES = [
+  { label: '1W', days: 7 },
+  { label: '1M', days: 30 },
+  { label: '3M', days: 90 },
+];
+
+export function StockChart({ ohlc, stockName }: StockChartProps) {
+  const [range, setRange] = useState('1M');
+
+  const data = useMemo(() => {
+    const days = RANGES.find(r => r.label === range)?.days ?? 30;
+    return ohlc.slice(-days).map(p => ({
+      date: p.date,
+      close: p.close,
+      // short label for x-axis
+      label: new Date(p.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+    }));
+  }, [ohlc, range]);
+
+  const firstClose = data[0]?.close ?? 0;
+  const lastClose = data[data.length - 1]?.close ?? 0;
+  const isPositive = lastClose >= firstClose;
+  const lineColor = isPositive ? '#10b981' : '#ef4444';
+
+  const minClose = Math.min(...data.map(d => d.close));
+  const maxClose = Math.max(...data.map(d => d.close));
+  const padding = (maxClose - minClose) * 0.05;
+
+  if (!ohlc || ohlc.length === 0) return null;
 
   return (
-    <Card variant="subtle" className="p-7 pb-8 relative overflow-hidden">
-      <div className="absolute top-0 right-0 p-2 opacity-50 pointer-events-none">
-        <span className="text-[10px] uppercase tracking-widest text-[#5B8DFF]/40 font-bold border border-[#5B8DFF]/10 px-2 py-0.5 rounded">
-          Demonstration Mode
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex flex-col">
-          <h3 className="text-lg text-zinc-100">Price Movement - {stockName}</h3>
-          <p className="text-xs text-zinc-500">Intraday price trend (Simulated)</p>
+    <Card variant="subtle" className="p-6 pb-4">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h3 className="text-base font-semibold text-[#F0F0F0]">{stockName} — Price History</h3>
+          <p className="text-xs text-[#A0A0A0] mt-0.5">Daily closing price · NSE</p>
         </div>
-        <div className="flex bg-zinc-900/50 rounded-lg p-0.5 border border-zinc-800">
-          {['1D', '1W', '1M'].map((range) => (
+        <div className="flex bg-[#1E1E1E]/60 rounded-lg p-0.5 border border-[#2A2A2A]">
+          {RANGES.map(r => (
             <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`
-                px-3 py-1 text-xs font-medium rounded-md transition-all
-                ${timeRange === range
-                  ? 'bg-zinc-800 text-zinc-100 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-300'}
-              `}
+              key={r.label}
+              onClick={() => setRange(r.label)}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                range === r.label
+                  ? 'bg-[#2A2A2A] text-[#F0F0F0] shadow-sm'
+                  : 'text-[#A0A0A0] hover:text-[#A0A0A0]'
+              }`}
             >
-              {range}
+              {r.label}
             </button>
           ))}
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,150,255,0.05)" vertical={false} />
+
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(74, 158, 255, 0.15)" vertical={false} />
           <XAxis
-            dataKey="time"
-            stroke="#52525b"
-            style={{ fontSize: '10px' }}
+            dataKey="label"
+            stroke="#2A2A2A"
+            tick={{ fill: '#606060', fontSize: 10 }}
             tickLine={false}
             axisLine={false}
+            interval="preserveStartEnd"
           />
           <YAxis
-            stroke="#52525b"
-            style={{ fontSize: '10px' }}
-            domain={['auto', 'auto']}
+            stroke="#2A2A2A"
+            tick={{ fill: '#606060', fontSize: 10 }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value) => `₹${value}`}
-            width={40}
+            tickFormatter={v => `₹${v.toLocaleString('en-IN')}`}
+            domain={[minClose - padding, maxClose + padding]}
+            width={72}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              border: '1px solid rgba(100, 150, 255, 0.2)',
-              borderRadius: '8px',
-              color: '#fafafa',
-              backdropFilter: 'blur(8px)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              backgroundColor: 'rgba(30, 30, 30, 0.9)',
+              border: '1px solid rgba(74, 158, 255, 0.15)',
+              borderRadius: '10px',
+              color: '#F0F0F0',
+              fontSize: '12px',
             }}
-            labelStyle={{ color: '#71717a', fontSize: '11px', marginBottom: '4px' }}
+            labelStyle={{ color: '#606060', marginBottom: '4px' }}
+            formatter={(value: number) => [`₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 'Close']}
           />
-          <defs>
-            <linearGradient id="lineColor" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#3A6FF8" />
-              <stop offset="100%" stopColor="#60A5FA" />
-            </linearGradient>
-          </defs>
+          <ReferenceLine y={firstClose} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4" />
           <Line
-            type="natural"
-            dataKey="price"
-            stroke="url(#lineColor)"
-            strokeWidth={3}
+            type="monotone"
+            dataKey="close"
+            stroke={lineColor}
+            strokeWidth={2}
             dot={false}
-            activeDot={{ r: 6, strokeWidth: 0, fill: '#fff' }}
-            animationDuration={1500}
+            activeDot={{ r: 5, strokeWidth: 0, fill: '#fff' }}
+            animationDuration={800}
           />
         </LineChart>
       </ResponsiveContainer>

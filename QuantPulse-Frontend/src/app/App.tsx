@@ -15,7 +15,7 @@ import { ProtectedRoute } from '@/app/components/ProtectedRoute';
 export default function App() {
   return (
     <AuthProvider>
-      <div className="relative min-h-screen text-zinc-100 font-sans antialiased selection:bg-blue-500/30">
+      <div className="relative min-h-screen text-[#F0F0F0] font-sans antialiased selection:bg-blue-500/30">
         <FintechBackground />
         <div className="relative z-10">
           <BrowserRouter>

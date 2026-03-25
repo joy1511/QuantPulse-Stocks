@@ -24,7 +24,7 @@ export function StockInput({ onSearch, disabled }: StockInputProps) {
     <div className="space-y-4">
       <form onSubmit={handleSubmit} className="flex gap-3">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-[#A0A0A0]" />
           <Input
             type="text"
             placeholder="Enter NSE stock ticker (e.g., RELIANCE, TCS)"
@@ -41,7 +41,7 @@ export function StockInput({ onSearch, disabled }: StockInputProps) {
       </form>
 
       <div className="flex items-center gap-2">
-        <span className="text-sm text-zinc-500">Popular:</span>
+        <span className="text-sm text-[#A0A0A0]">Popular:</span>
         {popularStocks.map((stock) => (
           <button
             key={stock}
@@ -50,7 +50,7 @@ export function StockInput({ onSearch, disabled }: StockInputProps) {
               onSearch(stock);
             }}
             disabled={disabled}
-            className="px-3 py-1 text-sm rounded-md bg-[rgba(15,23,42,0.6)] hover:bg-[rgba(58,111,248,0.15)] border border-[rgba(100,150,255,0.12)] text-zinc-300 transition-colors backdrop-blur-sm disabled:opacity-50 disabled:pointer-events-none"
+            className="px-3 py-1 text-sm rounded-md bg-[rgba(30, 30, 30, 0.9)] hover:bg-[rgba(74,158,255,0.15)] border border-[rgba(74, 158, 255, 0.15)] text-[#A0A0A0] transition-colors backdrop-blur-sm disabled:opacity-50 disabled:pointer-events-none"
           >
             {stock}
           </button>

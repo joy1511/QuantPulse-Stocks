@@ -350,7 +350,7 @@ def _build_fallback_research_report(
         technical_summary = "Neutral Outlook"
         justification = f"Mixed signals — LSTM {lstm_prob:.0%}, regime {regime}, RSI {rsi:.1f}."
 
-    rsi_status = "⚠️ Overbought" if rsi > 70 else ("📉 Oversold" if rsi < 30 else f"Normal ({rsi:.1f})")
+    rsi_status = "Overbought" if rsi > 70 else ("Oversold" if rsi < 30 else f"Normal ({rsi:.1f})")
     bb_status = "Extended" if bollinger > 1 else ("Compressed" if bollinger < 0 else f"Within bands ({bollinger:.2f})")
 
     report = f"""## Research Analysis Report: {ticker} (NSE)
@@ -370,17 +370,16 @@ def _build_fallback_research_report(
 | Bollinger %B | {bollinger:.4f} | {bb_status} |
 
 ### 4. India VIX
-**{vix_level:.1f}** {'⚠️ Elevated volatility' if vix_level > 22 else '✅ Calm market'}
+**{vix_level:.1f}** {'Elevated volatility — exercise caution' if vix_level > 22 else 'Calm market conditions'}
 
 ### 5. Risk Assessment
-{'🔴 CAUTION: Bear regime / elevated VIX. Risk management priority.' if ('Bear' in regime or vix_level > 22) else '🟢 No elevated risk conditions.'}
+{'CAUTION: Bear regime / elevated VIX. Risk management priority.' if ('Bear' in regime or vix_level > 22) else 'No elevated risk conditions detected.'}
 
 ### 6. TECHNICAL SUMMARY: **{technical_summary}**
 {justification}
 
 ---
-*📊 Real LSTM + HMM data. AI agents temporarily offline.*
-*⚠️ Research data for educational purposes. Stocks are inherently unpredictable.*
+*Research data for educational purposes. Stocks are inherently unpredictable.*
 """
 
     return {

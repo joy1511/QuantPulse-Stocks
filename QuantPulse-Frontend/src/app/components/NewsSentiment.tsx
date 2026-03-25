@@ -16,10 +16,10 @@ export function NewsSentiment({ symbol, onDataUpdate }: NewsSentimentProps) {
 
     // Sentiment options with soothing, professional colors
     const options = [
-        { label: 'Very Bad', color: 'bg-red-500/80', textColor: 'text-red-400', hoverBg: 'hover:bg-red-500/20' },
-        { label: 'Bad', color: 'bg-amber-500/80', textColor: 'text-amber-400', hoverBg: 'hover:bg-amber-500/20' },
+        { label: 'Very Bad', color: 'bg-red-500/80', textColor: 'text-[#E05252]', hoverBg: 'hover:bg-red-500/20' },
+        { label: 'Bad', color: 'bg-amber-500/80', textColor: 'text-[#E8A838]', hoverBg: 'hover:bg-amber-500/20' },
         { label: 'Neutral', color: 'bg-blue-400/80', textColor: 'text-blue-300', hoverBg: 'hover:bg-blue-400/20' },
-        { label: 'Good', color: 'bg-emerald-500/80', textColor: 'text-emerald-400', hoverBg: 'hover:bg-emerald-500/20' },
+        { label: 'Good', color: 'bg-emerald-500/80', textColor: 'text-[#4CAF7D]', hoverBg: 'hover:bg-emerald-500/20' },
         { label: 'Very Good', color: 'bg-green-500/80', textColor: 'text-green-400', hoverBg: 'hover:bg-green-500/20' },
     ];
 
@@ -77,31 +77,31 @@ export function NewsSentiment({ symbol, onDataUpdate }: NewsSentimentProps) {
     const confidence = data?.newsConfidence ?? 0;
 
     return (
-        <Card variant="glass" className="p-5 border border-[rgba(100,150,255,0.12)]">
+        <Card variant="glass" className="p-5 border border-[rgba(74, 158, 255, 0.15)]">
             <div className="flex flex-col gap-4">
                 {/* Header with refresh button */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Newspaper className="size-4 text-[#5B8DFF]" />
-                        <p className="text-sm text-zinc-400 font-medium">News Sentiment</p>
+                        <Newspaper className="size-4 text-[#4A9EFF]" />
+                        <p className="text-sm text-[#A0A0A0] font-medium">News Sentiment</p>
                     </div>
                     <button
                         onClick={fetchData}
                         disabled={isLoading}
-                        className="p-1.5 rounded-md hover:bg-[rgba(100,150,255,0.1)] transition-colors disabled:opacity-50 group"
+                        className="p-1.5 rounded-md hover:bg-[rgba(74, 158, 255, 0.15)] transition-colors disabled:opacity-50 group"
                         title={lastRefresh ? `Last updated: ${lastRefresh.toLocaleTimeString()}` : 'Refresh'}
                     >
-                        <RefreshCw className={`size-3.5 text-zinc-500 group-hover:text-[#5B8DFF] transition-colors ${isLoading ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`size-3.5 text-[#A0A0A0] group-hover:text-[#4A9EFF] transition-colors ${isLoading ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
 
                 {/* Current sentiment label */}
                 <div className="flex items-baseline justify-between">
-                    <p className={`text-xl font-semibold ${options[activeIndex]?.textColor || 'text-zinc-100'}`}>
+                    <p className={`text-xl font-semibold ${options[activeIndex]?.textColor || 'text-[#F0F0F0]'}`}>
                         {isLoading ? 'Updating...' : activeLabel}
                     </p>
                     {!isLoading && !error && (
-                        <span className="text-xs text-zinc-500" title={`Based on ${articlesCount} articles`}>
+                        <span className="text-xs text-[#A0A0A0]" title={`Based on ${articlesCount} articles`}>
                             {confidence}% confidence
                         </span>
                     )}
@@ -109,7 +109,7 @@ export function NewsSentiment({ symbol, onDataUpdate }: NewsSentimentProps) {
 
                 {/* Error state */}
                 {error && (
-                    <p className="text-xs text-red-400/80">{error}</p>
+                    <p className="text-xs text-[#E05252]/80">{error}</p>
                 )}
 
                 {/* Sentiment scale bar */}
@@ -128,7 +128,7 @@ export function NewsSentiment({ symbol, onDataUpdate }: NewsSentimentProps) {
                                 />
 
                                 {/* Label */}
-                                <span className={`text-[9px] font-medium transition-colors ${isActive ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                                <span className={`text-[9px] font-medium transition-colors ${isActive ? 'text-[#A0A0A0]' : 'text-[#606060]'}`}>
                                     {index === 0 || index === options.length - 1 || isActive ? option.label : '•'}
                                 </span>
                             </div>
@@ -138,7 +138,7 @@ export function NewsSentiment({ symbol, onDataUpdate }: NewsSentimentProps) {
 
                 {/* Articles count tooltip */}
                 {!isLoading && !error && articlesCount > 0 && (
-                    <p className="text-[10px] text-zinc-500 text-center">
+                    <p className="text-[10px] text-[#A0A0A0] text-center">
                         Based on {articlesCount} article{articlesCount > 1 ? 's' : ''} from the past {data?.daysAnalyzed || 7} days
                     </p>
                 )}

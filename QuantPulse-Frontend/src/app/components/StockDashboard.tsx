@@ -57,19 +57,19 @@ const StockDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
+        <div className="min-h-screen bg-[#121212] text-[#F0F0F0] p-8 font-sans">
             {/* Search Header */}
             <div className="max-w-4xl mx-auto mb-12 text-center">
-                <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+                <h1 className="text-5xl font-extrabold mb-4 text-[#F0F0F0]">
                     QuantPulse AI
                 </h1>
-                <p className="text-slate-400 mb-8">AI-Powered Research Analysis Engine</p>
+                <p className="text-[#A0A0A0] mb-8">AI-Powered Research Analysis Engine</p>
 
-                <div className="flex gap-2 max-w-md mx-auto bg-slate-900 p-2 rounded-2xl border border-slate-800 shadow-2xl">
+                <div className="flex gap-2 max-w-md mx-auto bg-[rgba(30, 30, 30, 0.9)] p-2 rounded-2xl border border-[#2A2A2A] shadow-2xl">
                     <input
                         type="text"
                         placeholder="Enter Ticker (e.g. RELIANCE)"
-                        className="flex-1 bg-transparent border-none focus:ring-0 px-4 text-lg outline-none"
+                        className="flex-1 bg-transparent border-none focus:ring-0 px-4 text-lg outline-none text-[#F0F0F0] placeholder:text-[#606060]"
                         value={ticker}
                         onChange={(e) => setTicker(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
@@ -77,9 +77,9 @@ const StockDashboard = () => {
                     <button
                         onClick={handleAnalyze}
                         disabled={loading}
-                        className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 p-3 rounded-xl transition-all cursor-pointer"
+                        className="bg-[#1A6FD4] hover:bg-[#2A7FE8] disabled:bg-[#2A2A2A] p-3 rounded-xl transition-all cursor-pointer"
                     >
-                        {loading ? <Loader2 className="animate-spin" /> : <Search />}
+                        {loading ? <Loader2 className="animate-spin text-white" /> : <Search className="text-white" />}
                     </button>
                 </div>
             </div>
@@ -89,37 +89,37 @@ const StockDashboard = () => {
                 <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Quick Stats Sidebar */}
                     <div className="space-y-4">
-                        <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
-                            <div className="flex items-center gap-3 text-slate-400 mb-2">
+                        <div className="bg-[rgba(30, 30, 30, 0.9)] p-6 rounded-2xl border border-[#2A2A2A]">
+                            <div className="flex items-center gap-3 text-[#A0A0A0] mb-2">
                                 <BarChart2 size={18} />
                                 <span className="text-xs uppercase tracking-widest font-semibold">Regime</span>
                             </div>
-                            <div className="text-2xl font-bold text-blue-400">{data.regime}</div>
+                            <div className="text-2xl font-bold text-[#4A9EFF]">{data.regime}</div>
                         </div>
 
-                        <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
-                            <div className="flex items-center gap-3 text-slate-400 mb-2">
+                        <div className="bg-[rgba(30, 30, 30, 0.9)] p-6 rounded-2xl border border-[#2A2A2A]">
+                            <div className="flex items-center gap-3 text-[#A0A0A0] mb-2">
                                 <TrendingUp size={18} />
                                 <span className="text-xs uppercase tracking-widest font-semibold">LSTM Outlook</span>
                             </div>
-                            <div className="text-2xl font-bold text-emerald-400">
+                            <div className="text-2xl font-bold text-[#4CAF7D]">
                                 {data.ai_outlook} ({data.confidence})
                             </div>
                         </div>
 
-                        <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800">
-                            <div className="flex items-center gap-3 text-slate-400 mb-2">
+                        <div className="bg-[rgba(30, 30, 30, 0.9)] p-6 rounded-2xl border border-[#2A2A2A]">
+                            <div className="flex items-center gap-3 text-[#A0A0A0] mb-2">
                                 <AlertTriangle size={18} />
                                 <span className="text-xs uppercase tracking-widest font-semibold">Market Volatility</span>
                             </div>
-                            <div className="text-2xl font-bold text-yellow-500">VIX: {data.vix}</div>
+                            <div className="text-2xl font-bold text-[#E8A838]">VIX: {data.vix}</div>
                         </div>
 
                         {/* Research Analysis Status */}
                         {data.details.research_analysis.error && (
-                            <div className="bg-amber-900/20 p-4 rounded-2xl border border-amber-500/30">
-                                <p className="text-xs text-amber-400 font-medium mb-1">⚠️ AI Agents Status</p>
-                                <p className="text-xs text-amber-300/70">
+                            <div className="bg-amber-500/5 p-4 rounded-2xl border border-[#E8A838]/20">
+                                <p className="text-xs text-[#E8A838] font-medium mb-1">AI Agents Status</p>
+                                <p className="text-xs text-[#A0A0A0]">
                                     Agents temporarily offline. Showing LSTM + HMM analysis.
                                 </p>
                             </div>
@@ -127,8 +127,8 @@ const StockDashboard = () => {
                     </div>
 
                     {/* Detailed Research Analysis Report */}
-                    <div className="lg:col-span-2 bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl">
-                        <div className="prose prose-invert max-w-none prose-headings:text-blue-400 prose-strong:text-emerald-400 prose-td:text-slate-300 prose-th:text-slate-400">
+                    <div className="lg:col-span-2 bg-[rgba(30, 30, 30, 0.9)] p-8 rounded-2xl border border-[#2A2A2A] shadow-2xl">
+                        <div className="prose prose-invert max-w-none prose-headings:text-[#4A9EFF] prose-strong:text-[#4CAF7D] prose-td:text-[#A0A0A0] prose-th:text-[#A0A0A0]">
                             <ReactMarkdown>{data.final_report}</ReactMarkdown>
                         </div>
                     </div>
@@ -137,7 +137,7 @@ const StockDashboard = () => {
 
             {/* Error State */}
             {error && (
-                <div className="max-w-md mx-auto mt-8 p-4 bg-red-900/20 border border-red-500/50 rounded-2xl text-red-400 text-center">
+                <div className="max-w-md mx-auto mt-8 p-4 bg-[#E05252]/10 border border-[#E05252]/20 rounded-2xl text-[#E05252] text-center">
                     {error}
                 </div>
             )}

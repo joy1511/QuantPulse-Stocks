@@ -307,6 +307,14 @@ export interface V2AnalysisData {
   ai_outlook: string;
   confidence: string;
   final_report: string;
+  ohlc: Array<{
+    date: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }>;
   stock_price: {
     current_price: number | null;
     previous_close: number | null;

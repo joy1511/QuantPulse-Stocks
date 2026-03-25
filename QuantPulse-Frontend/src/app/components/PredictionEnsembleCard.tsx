@@ -155,7 +155,7 @@ function ConfidenceGauge({
         <path
           d={pathBg}
           fill="none"
-          stroke="rgba(100, 150, 255, 0.1)"
+          stroke="rgba(74, 158, 255, 0.15)"
           strokeWidth="12"
           strokeLinecap="round"
         />
@@ -192,10 +192,10 @@ function ConfidenceGauge({
         </text>
       </svg>
       {/* Min/Max Labels */}
-      <div className="absolute bottom-0 left-2 text-[10px] text-zinc-600">
+      <div className="absolute bottom-0 left-2 text-[10px] text-[#606060]">
         0
       </div>
-      <div className="absolute bottom-0 right-2 text-[10px] text-zinc-600">
+      <div className="absolute bottom-0 right-2 text-[10px] text-[#606060]">
         100
       </div>
     </div>
@@ -224,13 +224,13 @@ function AgentCard({
     >
       <div className="flex items-center gap-2 mb-2">
         <Icon className="size-4 opacity-70" />
-        <span className="text-xs font-medium text-zinc-300">{title}</span>
-        <span className="ml-auto text-[10px] text-zinc-500">
+        <span className="text-xs font-medium text-[#A0A0A0]">{title}</span>
+        <span className="ml-auto text-[10px] text-[#A0A0A0]">
           {(weight * 100).toFixed(0)}%
         </span>
       </div>
-      <div className="text-lg font-semibold text-zinc-100">{value}</div>
-      {subValue && <div className="text-xs text-zinc-500 mt-1">{subValue}</div>}
+      <div className="text-lg font-semibold text-[#F0F0F0]">{value}</div>
+      {subValue && <div className="text-xs text-[#A0A0A0] mt-1">{subValue}</div>}
     </div>
   );
 }
@@ -281,25 +281,25 @@ export function PredictionEnsembleCard({
         return {
           icon: TrendingUp,
           label: "Bullish",
-          color: "text-emerald-400",
-          bgColor: "bg-emerald-500/10",
-          borderColor: "border-emerald-500/30",
+          color: "text-[#4CAF7D]",
+          bgColor: "bg-[#4CAF7D]/10",
+          borderColor: "border-[#4CAF7D]/20",
         };
       case "DOWN":
         return {
           icon: TrendingDown,
           label: "Bearish",
-          color: "text-red-400",
-          bgColor: "bg-red-500/10",
-          borderColor: "border-red-500/30",
+          color: "text-[#E05252]",
+          bgColor: "bg-[#E05252]/10",
+          borderColor: "border-[#E05252]/20",
         };
       default:
         return {
           icon: Activity,
           label: "Neutral",
-          color: "text-amber-400",
-          bgColor: "bg-amber-500/10",
-          borderColor: "border-amber-500/30",
+          color: "text-[#E8A838]",
+          bgColor: "bg-[#E8A838]/10",
+          borderColor: "border-[#E8A838]/20",
         };
     }
   };
@@ -310,21 +310,21 @@ export function PredictionEnsembleCard({
       <Card variant="elevated" className="p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-            <Brain className="size-5 text-blue-400" />
+            <Brain className="size-5 text-[#4A9EFF]" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-zinc-100">
+            <h3 className="text-lg font-semibold text-[#F0F0F0]">
               Agentic Ensemble
             </h3>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-[#A0A0A0]">
               Multi-Agent Prediction System
             </p>
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-12">
           <Loader2 className="size-10 text-blue-500 animate-spin mb-4" />
-          <p className="text-sm text-zinc-400">Orchestrating AI agents...</p>
-          <p className="text-xs text-zinc-600 mt-1">
+          <p className="text-sm text-[#A0A0A0]">Orchestrating AI agents...</p>
+          <p className="text-xs text-[#606060] mt-1">
             Quant • Topology • Sentiment
           </p>
         </div>
@@ -335,18 +335,18 @@ export function PredictionEnsembleCard({
   // Error state
   if (error) {
     return (
-      <Card variant="elevated" className="p-6 border-l-4 border-red-500/40">
+      <Card variant="elevated" className="p-6 border-l-4 border-[#E05252]/20">
         <div className="flex items-center gap-3 mb-4">
-          <AlertTriangle className="size-5 text-red-400" />
-          <h3 className="text-lg font-semibold text-zinc-100">
+          <AlertTriangle className="size-5 text-[#E05252]" />
+          <h3 className="text-lg font-semibold text-[#F0F0F0]">
             Ensemble Error
           </h3>
         </div>
-        <p className="text-sm text-red-400/80">{error}</p>
+        <p className="text-sm text-[#E05252]/80">{error}</p>
         {onRefresh && (
           <button
             onClick={onRefresh}
-            className="mt-4 px-4 py-2 text-sm bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors"
+            className="mt-4 px-4 py-2 text-sm bg-[#E05252]/10 border border-[#E05252]/20 rounded-lg text-[#E05252] hover:bg-red-500/20 transition-colors"
           >
             Retry
           </button>
@@ -360,12 +360,12 @@ export function PredictionEnsembleCard({
     return (
       <Card variant="elevated" className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <Brain className="size-5 text-blue-400" />
-          <h3 className="text-lg font-semibold text-zinc-100">
+          <Brain className="size-5 text-[#4A9EFF]" />
+          <h3 className="text-lg font-semibold text-[#F0F0F0]">
             Agentic Ensemble
           </h3>
         </div>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-[#A0A0A0]">
           Select a stock to see ensemble prediction
         </p>
       </Card>
@@ -378,14 +378,14 @@ export function PredictionEnsembleCard({
   return (
     <Card
       variant="elevated"
-      className={`p-6 relative overflow-hidden ${shockActive || data.shock_simulation_active ? "border-red-500/30" : ""}`}
+      className={`p-6 relative overflow-hidden ${shockActive || data.shock_simulation_active ? "border-[#E05252]/20" : ""}`}
     >
       {/* Shock Indicator */}
       {(shockActive || data.shock_simulation_active) && (
         <div className="absolute top-0 right-0 p-2">
-          <div className="flex items-center gap-1 px-2 py-1 bg-red-500/10 border border-red-500/30 rounded-md animate-pulse">
-            <Zap className="size-3 text-red-400" />
-            <span className="text-[10px] text-red-400 font-medium">
+          <div className="flex items-center gap-1 px-2 py-1 bg-[#E05252]/10 border border-[#E05252]/20 rounded-md animate-pulse">
+            <Zap className="size-3 text-[#E05252]" />
+            <span className="text-[10px] text-[#E05252] font-medium">
               SHOCK MODE
             </span>
           </div>
@@ -394,14 +394,14 @@ export function PredictionEnsembleCard({
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-cyan-500/20 border border-white/5">
-          <Brain className="size-6 text-blue-400" />
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-cyan-500/20 border border-[#2A2A2A]">
+          <Brain className="size-6 text-[#4A9EFF]" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-zinc-100">
+          <h3 className="text-lg font-semibold text-[#F0F0F0]">
             Agentic Ensemble
           </h3>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-[#A0A0A0]">
             Multi-Agent Weighted Prediction
           </p>
         </div>
@@ -421,20 +421,20 @@ export function PredictionEnsembleCard({
               <p className={`text-2xl font-bold ${directionConfig.color}`}>
                 {data.direction}
               </p>
-              <p className="text-sm text-zinc-400">{directionConfig.label}</p>
+              <p className="text-sm text-[#A0A0A0]">{directionConfig.label}</p>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
-            <p className="text-xs text-zinc-500 mb-1">Weighted Prediction</p>
-            <p className="text-2xl font-bold text-zinc-100">
+          <div className="p-4 rounded-xl bg-[#1E1E1E]/30 border border-[#30363D]/50">
+            <p className="text-xs text-[#A0A0A0] mb-1">Weighted Prediction</p>
+            <p className="text-2xl font-bold text-[#F0F0F0]">
               ₹
               {data.weighted_prediction.toLocaleString("en-IN", {
                 minimumFractionDigits: 2,
               })}
             </p>
             <p
-              className={`text-sm mt-1 ${data.price_change_percent >= 0 ? "text-emerald-400" : "text-red-400"}`}
+              className={`text-sm mt-1 ${data.price_change_percent >= 0 ? "text-[#4CAF7D]" : "text-[#E05252]"}`}
             >
               {data.price_change_percent >= 0 ? "+" : ""}
               {data.price_change_percent.toFixed(2)}%
@@ -451,10 +451,10 @@ export function PredictionEnsembleCard({
       {/* Comparison Chart */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-medium text-zinc-400">
+          <h4 className="text-sm font-medium text-[#A0A0A0]">
             LSTM Base vs Agentic Adjusted
           </h4>
-          <span className="text-xs text-zinc-600">
+          <span className="text-xs text-[#606060]">
             {data.comparison.total_adjustment_pct >= 0 ? "+" : ""}
             {data.comparison.total_adjustment_pct.toFixed(2)}% adjustment
           </span>
@@ -482,8 +482,8 @@ export function PredictionEnsembleCard({
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "rgba(15, 23, 42, 0.95)",
-                  border: "1px solid rgba(100, 150, 255, 0.2)",
+                  backgroundColor: "rgba(30, 30, 30, 0.9)",
+                  border: "1px solid rgba(74, 158, 255, 0.15)",
                   borderRadius: "8px",
                   color: "#fafafa",
                   backdropFilter: "blur(8px)",
@@ -524,7 +524,7 @@ export function PredictionEnsembleCard({
           subValue={data.components.topology_agent.cluster_name}
           color={
             data.components.topology_agent.cluster_risk === "Critical"
-              ? "border-red-500/30 bg-red-500"
+              ? "border-[#E05252]/20 bg-red-500"
               : "border-purple-500/30 bg-purple-500"
           }
           weight={data.components.topology_agent.weight}
@@ -536,10 +536,10 @@ export function PredictionEnsembleCard({
           subValue={data.components.sentiment_agent.sentiment_label}
           color={
             data.components.sentiment_agent.consensus_score > 0
-              ? "border-emerald-500/30 bg-emerald-500"
+              ? "border-[#4CAF7D]/20 bg-emerald-500"
               : data.components.sentiment_agent.consensus_score < 0
-                ? "border-red-500/30 bg-red-500"
-                : "border-amber-500/30 bg-amber-500"
+                ? "border-[#E05252]/20 bg-red-500"
+                : "border-[#E8A838]/20 bg-amber-500"
           }
           weight={data.components.sentiment_agent.weight}
         />
@@ -548,7 +548,7 @@ export function PredictionEnsembleCard({
       {/* Expandable Details */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full text-xs text-zinc-500 hover:text-blue-400 transition-colors py-2"
+        className="flex items-center justify-between w-full text-xs text-[#A0A0A0] hover:text-[#4A9EFF] transition-colors py-2"
       >
         <span className="flex items-center gap-1.5">
           <Info className="size-3.5" />
@@ -562,42 +562,42 @@ export function PredictionEnsembleCard({
       </button>
 
       {isExpanded && (
-        <div className="mt-3 p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/40 space-y-4">
+        <div className="mt-3 p-4 bg-[#1E1E1E]/30 rounded-xl border border-[#30363D]/40 space-y-4">
           {/* Topology Details */}
           <div>
-            <h5 className="text-xs font-medium text-zinc-400 mb-2">
+            <h5 className="text-xs font-medium text-[#A0A0A0] mb-2">
               Network Topology
             </h5>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2 bg-zinc-800/30 rounded">
-                <span className="text-zinc-500">Cluster:</span>
+              <div className="p-2 bg-[#2A2A2A]/30 rounded">
+                <span className="text-[#A0A0A0]">Cluster:</span>
                 <span
-                  className={`ml-2 ${data.components.topology_agent.cluster_risk === "Critical" ? "text-red-400" : "text-zinc-300"}`}
+                  className={`ml-2 ${data.components.topology_agent.cluster_risk === "Critical" ? "text-[#E05252]" : "text-[#A0A0A0]"}`}
                 >
                   {data.components.topology_agent.cluster_name}
                 </span>
               </div>
-              <div className="p-2 bg-zinc-800/30 rounded">
-                <span className="text-zinc-500">Risk Level:</span>
+              <div className="p-2 bg-[#2A2A2A]/30 rounded">
+                <span className="text-[#A0A0A0]">Risk Level:</span>
                 <span
-                  className={`ml-2 ${data.components.topology_agent.cluster_risk === "Critical" ? "text-red-400" : data.components.topology_agent.cluster_risk === "High" ? "text-amber-400" : "text-emerald-400"}`}
+                  className={`ml-2 ${data.components.topology_agent.cluster_risk === "Critical" ? "text-[#E05252]" : data.components.topology_agent.cluster_risk === "High" ? "text-[#E8A838]" : "text-[#4CAF7D]"}`}
                 >
                   {data.components.topology_agent.cluster_risk}
                 </span>
               </div>
-              <div className="p-2 bg-zinc-800/30 rounded">
-                <span className="text-zinc-500">Centrality:</span>
-                <span className="ml-2 text-zinc-300">
+              <div className="p-2 bg-[#2A2A2A]/30 rounded">
+                <span className="text-[#A0A0A0]">Centrality:</span>
+                <span className="ml-2 text-[#A0A0A0]">
                   {(
                     data.components.topology_agent.centrality_score * 100
                   ).toFixed(1)}
                   %
                 </span>
               </div>
-              <div className="p-2 bg-zinc-800/30 rounded">
-                <span className="text-zinc-500">Contagion Risk:</span>
+              <div className="p-2 bg-[#2A2A2A]/30 rounded">
+                <span className="text-[#A0A0A0]">Contagion Risk:</span>
                 <span
-                  className={`ml-2 ${data.components.topology_agent.contagion_risk > 0.5 ? "text-red-400" : "text-zinc-300"}`}
+                  className={`ml-2 ${data.components.topology_agent.contagion_risk > 0.5 ? "text-[#E05252]" : "text-[#A0A0A0]"}`}
                 >
                   {(
                     data.components.topology_agent.contagion_risk * 100
@@ -611,7 +611,7 @@ export function PredictionEnsembleCard({
           {/* Neighbor Signals */}
           {data.components.topology_agent.neighbor_signals.length > 0 && (
             <div>
-              <h5 className="text-xs font-medium text-zinc-400 mb-2">
+              <h5 className="text-xs font-medium text-[#A0A0A0] mb-2">
                 Connected Nodes
               </h5>
               <div className="flex flex-wrap gap-2">
@@ -621,8 +621,8 @@ export function PredictionEnsembleCard({
                       key={idx}
                       className={`px-2 py-1 rounded text-xs ${
                         neighbor.signal === "bullish"
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                          : "bg-red-500/10 text-red-400 border border-red-500/20"
+                          ? "bg-[#4CAF7D]/10 text-[#4CAF7D] border border-[#4CAF7D]/20"
+                          : "bg-[#E05252]/10 text-[#E05252] border border-[#E05252]/20"
                       }`}
                     >
                       {neighbor.symbol}: {neighbor.signal}
@@ -635,43 +635,43 @@ export function PredictionEnsembleCard({
 
           {/* Adjustment Breakdown */}
           <div>
-            <h5 className="text-xs font-medium text-zinc-400 mb-2">
+            <h5 className="text-xs font-medium text-[#A0A0A0] mb-2">
               Price Adjustment Breakdown
             </h5>
             <div className="space-y-1 text-xs">
-              <div className="flex justify-between text-zinc-400">
+              <div className="flex justify-between text-[#A0A0A0]">
                 <span>Topology Adjustment:</span>
                 <span
                   className={
                     data.comparison.topology_adjustment_pct < 0
-                      ? "text-red-400"
-                      : "text-emerald-400"
+                      ? "text-[#E05252]"
+                      : "text-[#4CAF7D]"
                   }
                 >
                   {data.comparison.topology_adjustment_pct >= 0 ? "+" : ""}
                   {data.comparison.topology_adjustment_pct.toFixed(2)}%
                 </span>
               </div>
-              <div className="flex justify-between text-zinc-400">
+              <div className="flex justify-between text-[#A0A0A0]">
                 <span>Sentiment Adjustment:</span>
                 <span
                   className={
                     data.comparison.sentiment_adjustment_pct < 0
-                      ? "text-red-400"
-                      : "text-emerald-400"
+                      ? "text-[#E05252]"
+                      : "text-[#4CAF7D]"
                   }
                 >
                   {data.comparison.sentiment_adjustment_pct >= 0 ? "+" : ""}
                   {data.comparison.sentiment_adjustment_pct.toFixed(2)}%
                 </span>
               </div>
-              <div className="flex justify-between text-zinc-300 font-medium pt-1 border-t border-zinc-700/50">
+              <div className="flex justify-between text-[#A0A0A0] font-medium pt-1 border-t border-[#30363D]/50">
                 <span>Total Adjustment:</span>
                 <span
                   className={
                     data.comparison.total_adjustment_pct < 0
-                      ? "text-red-400"
-                      : "text-emerald-400"
+                      ? "text-[#E05252]"
+                      : "text-[#4CAF7D]"
                   }
                 >
                   {data.comparison.total_adjustment_pct >= 0 ? "+" : ""}
@@ -684,8 +684,8 @@ export function PredictionEnsembleCard({
       )}
 
       {/* Disclaimer */}
-      <div className="mt-4 pt-4 border-t border-zinc-800/50">
-        <p className="text-[10px] text-zinc-600 leading-relaxed">
+      <div className="mt-4 pt-4 border-t border-[#30363D]/50">
+        <p className="text-[10px] text-[#606060] leading-relaxed">
           {data.disclaimer}
         </p>
       </div>

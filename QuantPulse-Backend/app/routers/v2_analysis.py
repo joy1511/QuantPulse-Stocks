@@ -118,6 +118,9 @@ async def analyze_ticker(ticker: str):
     gc.collect()
     logger.info("🧹 Freed memory before LSTM loading")
 
+    # Save OHLC snapshot BEFORE passing target_df to LSTM (which may modify it)
+    _ohlc_snapshot = target_df.tail(90).copy() if target_df is not None and not target_df.empty else None
+
     # 2b. LSTM Neural Prediction (pass pre-fetched data)
     try:
         lstm_result = lstm_predict(ticker_clean, target_df=target_df)
@@ -214,5 +217,35 @@ async def analyze_ticker(ticker: str):
         },
     }
 
-    logger.info(f"✅ V2 analysis complete for {ticker_clean}")
+    # =========================================================================
+    # OHLC — Append last 90 days of daily price data for the frontend chart
+    # =========================================================================
+    ohlc_data = []
+    try:
+        if _ohlc_snapshot is not None and not _ohlc_snapshot.empty:
+            df_tail = _ohlc_snapshot
+            # Strip timezone from index if present
+            if hasattr(df_tail.index, 'tz') and df_tail.index.tz is not None:
+                df_tail.index = df_tail.index.tz_convert(None)
+            for date, row in df_tail.iterrows():
+                try:
+                    ohlc_data.append({
+                        "date": str(date)[:10],
+                        "open": round(float(row["Open"]), 2),
+                        "high": round(float(row["High"]), 2),
+                        "low": round(float(row["Low"]), 2),
+                        "close": round(float(row["Close"]), 2),
+                        "volume": int(float(row.get("Volume", 0))),
+                    })
+                except Exception as row_err:
+                    logger.debug(f"Skipping OHLC row {date}: {row_err}")
+            logger.info(f"📊 OHLC serialized: {len(ohlc_data)} rows for {ticker_clean}")
+        else:
+            logger.warning(f"⚠️ target_df is None or empty — no OHLC data for {ticker_clean}")
+    except Exception as e:
+        logger.warning(f"⚠️ Could not serialize OHLC data: {e}")
+
+    response["ohlc"] = ohlc_data
+
+    logger.info(f"✅ V2 analysis complete for {ticker_clean} ({len(ohlc_data)} OHLC rows)")
     return response

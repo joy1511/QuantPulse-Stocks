@@ -9,18 +9,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-[#3A6FF8] text-white hover:bg-[#4A7AE8] shadow-sm shadow-blue-500/20 rounded-lg hover:rounded-xl active:scale-[0.98] transition-all duration-300",
+        default: "bg-[#1A6FD4] text-white hover:bg-[#2A7FE8] shadow-sm shadow-blue-500/20 rounded-lg hover:rounded-xl active:scale-[0.98] transition-all duration-300",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 rounded-lg",
         outline:
-          "border border-[rgba(100,150,255,0.25)] bg-transparent text-zinc-200 hover:bg-[rgba(58,111,248,0.15)] hover:border-[rgba(100,150,255,0.4)] rounded-xl",
+          "border border-[rgba(74, 158, 255, 0.15)] bg-transparent text-zinc-200 hover:bg-[rgba(74,158,255,0.15)] hover:border-[rgba(74, 158, 255, 0.15)] rounded-xl",
         secondary:
-          "bg-[rgba(15,23,42,0.6)] text-zinc-200 border border-[rgba(100,150,255,0.12)] hover:bg-[rgba(15,23,42,0.8)] rounded-md",
+          "bg-[rgba(30, 30, 30, 0.9)] text-zinc-200 border border-[rgba(74, 158, 255, 0.15)] hover:bg-[rgba(30, 30, 30, 0.9)] rounded-md",
         ghost:
-          "hover:bg-[rgba(58,111,248,0.1)] hover:text-zinc-100 rounded-lg",
-        link: "text-[#5B8DFF] underline-offset-4 hover:underline rounded-none",
-        fintech: "bg-transparent border border-[#3A6FF8]/40 text-[#5B8DFF] hover:bg-[#3A6FF8]/10 hover:border-[#3A6FF8]/60 rounded-2xl",
-        prominent: "bg-gradient-to-r from-[#3A6FF8] to-[#5B8DFF] text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 rounded-2xl border border-white/10",
+          "hover:bg-[rgba(74,158,255,0.1)] hover:text-[#F0F0F0] rounded-lg",
+        link: "text-[#4A9EFF] underline-offset-4 hover:underline rounded-none",
+        fintech: "bg-transparent border border-[#1A6FD4]/40 text-[#4A9EFF] hover:bg-[#1A6FD4]/10 hover:border-[#1A6FD4]/60 rounded-2xl",
+        prominent: "bg-[#1A6FD4] hover:bg-[#2A7FE8] text-white shadow-md hover:shadow-blue-500/30 hover:-translate-y-0.5 rounded-2xl border border-[#2A2A2A]",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

@@ -119,9 +119,9 @@ export function MarketMovers({ onStockClick }: MarketMoversProps) {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-24 rounded-2xl border border-white/5 bg-[rgba(15,23,42,0.3)]">
-                <Loader2 className="size-5 text-zinc-500 animate-spin" />
-                <span className="ml-2 text-xs text-zinc-500">Loading market movers…</span>
+            <div className="flex items-center justify-center h-24 rounded-2xl border border-[#2A2A2A] bg-[rgba(30, 30, 30, 0.9)]">
+                <Loader2 className="size-5 text-[#A0A0A0] animate-spin" />
+                <span className="ml-2 text-xs text-[#A0A0A0]">Loading market movers…</span>
             </div>
         );
     }
@@ -134,20 +134,20 @@ export function MarketMovers({ onStockClick }: MarketMoversProps) {
         <div className="space-y-4">
             {/* Section header */}
             <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <Flame className="size-4 text-amber-400" />
+                <div className="p-1.5 rounded-lg bg-[#E8A838]/10 border border-[#E8A838]/20">
+                    <Flame className="size-4 text-[#E8A838]" />
                 </div>
-                <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+                <h2 className="text-sm font-semibold text-[#A0A0A0] uppercase tracking-wider">
                     Today's Market Movers
                 </h2>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* ── Top Gainers ───────────────────────────────────────── */}
-                <div className="rounded-2xl bg-[rgba(15,23,42,0.4)] backdrop-blur-xl border border-emerald-500/10 p-4">
+                <div className="rounded-2xl bg-[rgba(30, 30, 30, 0.9)] backdrop-blur-xl border border-[#4CAF7D]/20 p-4">
                     <div className="flex items-center gap-2 mb-3">
-                        <TrendingUp className="size-4 text-emerald-400" />
-                        <span className="text-[11px] text-emerald-400 font-semibold uppercase tracking-widest">
+                        <TrendingUp className="size-4 text-[#4CAF7D]" />
+                        <span className="text-[11px] text-[#4CAF7D] font-semibold uppercase tracking-widest">
                             Top Gainers
                         </span>
                     </div>
@@ -160,23 +160,23 @@ export function MarketMovers({ onStockClick }: MarketMoversProps) {
                                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-emerald-500/5 transition-all group text-left"
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <span className="text-[10px] text-zinc-600 font-mono w-4 shrink-0">
+                                    <span className="text-[10px] text-[#606060] font-mono w-4 shrink-0">
                                         {i + 1}
                                     </span>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-semibold text-zinc-200 group-hover:text-emerald-300 transition-colors truncate">
+                                        <p className="text-sm font-semibold text-[#F0F0F0] group-hover:text-[#4CAF7D] transition-colors truncate">
                                             {stock.company}
                                         </p>
-                                        <p className="text-[10px] text-zinc-500 font-mono">
+                                        <p className="text-[10px] text-[#A0A0A0] font-mono">
                                             {resolveTicker(stock)}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0 ml-2">
-                                    <p className="text-sm font-semibold text-zinc-200">
+                                    <p className="text-sm font-semibold text-[#F0F0F0]">
                                         ₹{stock.price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
-                                    <p className="text-[11px] font-medium text-emerald-400 flex items-center justify-end gap-0.5">
+                                    <p className="text-[11px] font-medium text-[#4CAF7D] flex items-center justify-end gap-0.5">
                                         <ArrowUpRight size={11} />
                                         +{stock.percent_change.toFixed(2)}%
                                     </p>
@@ -187,10 +187,10 @@ export function MarketMovers({ onStockClick }: MarketMoversProps) {
                 </div>
 
                 {/* ── Top Losers ────────────────────────────────────────── */}
-                <div className="rounded-2xl bg-[rgba(15,23,42,0.4)] backdrop-blur-xl border border-red-500/10 p-4">
+                <div className="rounded-2xl bg-[rgba(30, 30, 30, 0.9)] backdrop-blur-xl border border-[#E05252]/20 p-4">
                     <div className="flex items-center gap-2 mb-3">
-                        <TrendingDown className="size-4 text-red-400" />
-                        <span className="text-[11px] text-red-400 font-semibold uppercase tracking-widest">
+                        <TrendingDown className="size-4 text-[#E05252]" />
+                        <span className="text-[11px] text-[#E05252] font-semibold uppercase tracking-widest">
                             Top Losers
                         </span>
                     </div>
@@ -203,23 +203,23 @@ export function MarketMovers({ onStockClick }: MarketMoversProps) {
                                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-red-500/5 transition-all group text-left"
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <span className="text-[10px] text-zinc-600 font-mono w-4 shrink-0">
+                                    <span className="text-[10px] text-[#606060] font-mono w-4 shrink-0">
                                         {i + 1}
                                     </span>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-semibold text-zinc-200 group-hover:text-red-300 transition-colors truncate">
+                                        <p className="text-sm font-semibold text-[#F0F0F0] group-hover:text-[#E05252] transition-colors truncate">
                                             {stock.company}
                                         </p>
-                                        <p className="text-[10px] text-zinc-500 font-mono">
+                                        <p className="text-[10px] text-[#A0A0A0] font-mono">
                                             {resolveTicker(stock)}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0 ml-2">
-                                    <p className="text-sm font-semibold text-zinc-200">
+                                    <p className="text-sm font-semibold text-[#F0F0F0]">
                                         ₹{stock.price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
-                                    <p className="text-[11px] font-medium text-red-400 flex items-center justify-end gap-0.5">
+                                    <p className="text-[11px] font-medium text-[#E05252] flex items-center justify-end gap-0.5">
                                         <ArrowDownRight size={11} />
                                         {stock.percent_change.toFixed(2)}%
                                     </p>
