@@ -103,7 +103,8 @@ class EnsemblePredictResponse(BaseModel):
 
 # Internal API helper — resolves correctly both locally and on deployment
 import os as _os
-INTERNAL_API_BASE = _os.getenv("INTERNAL_API_BASE", "http://localhost:8000")
+_port = _os.getenv("PORT", "8000")
+INTERNAL_API_BASE = _os.getenv("INTERNAL_API_BASE", f"http://localhost:{_port}")
 
 
 async def fetch_current_price(symbol: str) -> Optional[float]:

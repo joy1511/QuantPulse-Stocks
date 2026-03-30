@@ -84,7 +84,12 @@ class ProviderFactory:
             logger.warning(f"Primary provider (IndianAPI) failed for {symbol}: {str(e)}")
             
             # Try yfinance as fallback before demo data
+            # On cloud, yfinance live quotes are often blocked — skip to avoid 30s timeout
             try:
+                from ..config import IS_CLOUD
+                if IS_CLOUD:
+                    logger.info(f"Skipping yfinance live quote on cloud (often blocked)")
+                    raise Exception("yfinance live quotes unreliable on cloud")
                 logger.info(f"Trying yfinance fallback for {symbol}...")
                 return await self._get_quote_from_yfinance(symbol)
             except Exception as yf_error:

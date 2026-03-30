@@ -38,8 +38,8 @@ if DATABASE_URL:
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,  # Verify connections before using
-        pool_size=10,        # Connection pool size
-        max_overflow=20,     # Max connections beyond pool_size
+        pool_size=2,         # Reduced for free tier (Render/Railway)
+        max_overflow=3,      # Max 5 total connections
         echo=False           # Set to True for SQL query logging
     )
 else:

@@ -13,8 +13,11 @@ os.environ["OTEL_SDK_DISABLED"] = "true"
 # ---- LiteLLM Optimization: Prevent slow remote fetch of cost map ----
 os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
 
-from dotenv import load_dotenv
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # NOTE: crewai imports are DEFERRED to _execute_crew() to avoid blocking
 # uvicorn port binding on Render. CrewAI pulls in chromadb, litellm,

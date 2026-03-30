@@ -394,16 +394,14 @@ def _generate_synthetic_data(ticker: str, period: str = "2y") -> pd.DataFrame:
 
 async def _get_data_async(ticker: str, period: str = "2y") -> pd.DataFrame | None:
     """
-    Orchestrates data fetching with intelligent fallback and 24-hour caching.
+    Orchestrates HISTORICAL data fetching with intelligent fallback and 24-hour caching.
 
-    LOCAL (development):
+    Both LOCAL and CLOUD use the same order for HISTORICAL data:
       0. Cache → 1. yfinance → 2. IndianAPI → 3. nsepython → 4. Synthetic
 
-    DEPLOYED (IS_CLOUD=True):
-      0. Cache → 1. IndianAPI → 2. nsepython → 3. yfinance → 4. Synthetic
-
-    This ensures yfinance is the primary source locally (fast, reliable)
-    and IndianAPI is the primary source on cloud (yfinance often blocked).
+    yfinance works reliably for historical data on all platforms.
+    (Live/current price is handled separately by provider_factory and predictions router,
+     which use IndianAPI as primary on cloud.)
     """
     from app.config import IS_CLOUD
 

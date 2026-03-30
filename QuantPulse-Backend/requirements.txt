@@ -7,6 +7,9 @@ gunicorn==23.0.0
 python-dotenv==1.1.1
 pydantic==2.11.10
 email-validator==2.3.0
+httpx==0.28.1
+cachetools==5.5.0
+starlette==0.46.2
 
 # Database & ORM
 sqlalchemy==2.0.46

@@ -253,15 +253,20 @@ def predict(ticker: str, target_df: pd.DataFrame = None) -> dict:
         _load_model()
     
     if _MODEL is None or _SCALER is None:
+        logger.warning(
+            f"⚠️ LSTM model not loaded for {ticker} — returning Neutral. "
+            f"(MODEL={_MODEL is not None}, SCALER={_SCALER is not None})"
+        )
         return {
             "probability": 0.5,
             "outlook": "Neutral Outlook",
-            "error": "Model not loaded. Check models/ directory.",
+            "error": "Model not loaded — TensorFlow may be unavailable or download failed.",
             "features_summary": {},
         }
 
     # Step 1: Use provided data
     if target_df is None or target_df.empty:
+        logger.warning(f"⚠️ No market data provided for {ticker} — returning Neutral")
         return {
             "probability": 0.5,
             "outlook": "Neutral Outlook",
@@ -273,12 +278,18 @@ def predict(ticker: str, target_df: pd.DataFrame = None) -> dict:
     features_df = calculate_features(target_df)
 
     if len(features_df) < 60:
+        logger.warning(
+            f"⚠️ Insufficient LSTM features for {ticker}: need 60 rows, got {len(features_df)} "
+            f"(input had {len(target_df)} rows, ~26 lost to rolling calcs)"
+        )
         return {
             "probability": 0.5,
             "outlook": "Neutral Outlook",
-            "error": f"Insufficient data: need 60 rows, got {len(features_df)}",
+            "error": f"Insufficient data: need 60 feature rows, got {len(features_df)} (input: {len(target_df)} rows, need ~86+ raw rows)",
             "features_summary": {},
         }
+    
+    logger.info(f"📊 LSTM features ready for {ticker}: {len(features_df)} rows (from {len(target_df)} raw rows)")
 
     # Step 3: Take last 60 rows
     window = features_df.iloc[-60:].values  # shape: (60, 6)

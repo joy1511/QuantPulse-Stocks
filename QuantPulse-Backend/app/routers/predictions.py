@@ -76,7 +76,8 @@ MA_PERIOD = 5
 
 # Internal API base URL — resolves correctly both locally and on deployment
 import os as _os
-INTERNAL_API_BASE = _os.getenv("INTERNAL_API_BASE", "http://localhost:8000")
+_port = _os.getenv("PORT", "8000")
+INTERNAL_API_BASE = _os.getenv("INTERNAL_API_BASE", f"http://localhost:{_port}")
 
 
 # =============================================================================
@@ -87,6 +88,7 @@ def fetch_historical_prices(symbol: str, period: str = "1mo") -> list:
     """
     Fetch historical price data from Yahoo Finance.
     Blocking I/O - should be run in a thread.
+    yfinance works for historical data even on cloud.
     """
     yf_symbol = f"{symbol.upper()}.NS"
     
@@ -104,23 +106,70 @@ def fetch_historical_prices(symbol: str, period: str = "1mo") -> list:
         return []
 
 
-def get_current_price_info(symbol: str) -> dict:
+def _get_price_from_indianapi(symbol: str) -> dict:
     """
-    Fetch current price info from Yahoo Finance.
+    Fetch current price from IndianAPI (works on cloud).
     Blocking I/O - should be run in a thread.
     """
+    try:
+        import httpx
+        from app.config import INDIANAPI_KEY
+        
+        clean_symbol = symbol.strip().upper()
+        headers = {"Content-Type": "application/json", "User-Agent": "QuantPulse/2.0"}
+        if INDIANAPI_KEY:
+            headers["X-API-Key"] = INDIANAPI_KEY
+        
+        resp = httpx.get(
+            "https://stock.indianapi.in/stock",
+            params={"name": clean_symbol},
+            headers=headers,
+            timeout=15.0
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            price = data.get("currentPrice", {}).get("NSE") or data.get("currentPrice", {}).get("BSE")
+            if price:
+                return {"regularMarketPrice": float(price)}
+    except Exception as e:
+        print(f"IndianAPI price fetch failed for {symbol}: {e}")
+    return {}
+
+
+def get_current_price_info(symbol: str) -> dict:
+    """
+    Fetch current price info.
+    
+    On cloud: IndianAPI first (yfinance live often blocked), yfinance fallback.
+    Locally: yfinance first (fast, reliable), IndianAPI fallback.
+    Blocking I/O - should be run in a thread.
+    """
+    from app.config import IS_CLOUD
+    
+    if IS_CLOUD:
+        # Cloud: Try IndianAPI first (yfinance live is blocked)
+        result = _get_price_from_indianapi(symbol)
+        if result:
+            return result
+    
+    # Local (primary) or cloud (fallback): yfinance
     yf_symbol = f"{symbol.upper()}.NS"
     try:
         ticker = yf.Ticker(yf_symbol)
         hist = ticker.history(period="2d")
-        if hist.empty:
-            return {}
-        # Use last close as current price — more reliable than .info
-        last_close = float(hist["Close"].iloc[-1])
-        return {"regularMarketPrice": last_close}
+        if not hist.empty:
+            last_close = float(hist["Close"].iloc[-1])
+            return {"regularMarketPrice": last_close}
     except Exception as e:
-        print(f"Error fetching stock info: {e}")
-        return {}
+        print(f"yfinance price fetch failed for {symbol}: {e}")
+    
+    # Final fallback on local: try IndianAPI
+    if not IS_CLOUD:
+        result = _get_price_from_indianapi(symbol)
+        if result:
+            return result
+    
+    return {}
 
 
 def calculate_sma(prices: list, period: int) -> Optional[float]:
