@@ -54,7 +54,8 @@ class ProviderFactory:
         
         Flow (AUTO mode):
         1. Try IndianAPI (works for all NSE/BSE stocks)
-        2. If fails, return demo data
+        2. If fails, try yfinance (extract from latest historical data)
+        3. If fails, return demo data
         
         Args:
             symbol: Stock symbol
@@ -76,13 +77,20 @@ class ProviderFactory:
                     return await self._get_demo_quote(symbol)
             return await self._get_demo_quote(symbol)
         
-        # AUTO / INDIANAPI mode: IndianAPI → Demo
+        # AUTO / INDIANAPI mode: IndianAPI → yfinance → Demo
         try:
             return await self._try_primary_quote(symbol)
         except Exception as e:
             logger.warning(f"Primary provider (IndianAPI) failed for {symbol}: {str(e)}")
-            logger.warning(f"Falling back to demo data for {symbol}")
-            return await self._get_demo_quote(symbol)
+            
+            # Try yfinance as fallback before demo data
+            try:
+                logger.info(f"Trying yfinance fallback for {symbol}...")
+                return await self._get_quote_from_yfinance(symbol)
+            except Exception as yf_error:
+                logger.warning(f"yfinance fallback also failed for {symbol}: {str(yf_error)}")
+                logger.warning(f"Falling back to demo data for {symbol}")
+                return await self._get_demo_quote(symbol)
     
     async def get_historical_data(self, symbol: str, period: str = "1mo") -> HistoricalData:
         """
@@ -148,6 +156,52 @@ class ProviderFactory:
         if not self.primary_provider:
             raise Exception("Primary provider (IndianAPI) not available")
         return await self.primary_provider.get_company_profile(symbol)
+    
+    # yfinance fallback method
+    async def _get_quote_from_yfinance(self, symbol: str) -> StockQuote:
+        """
+        Get stock quote from yfinance as fallback.
+        Extracts latest price from 5-day historical data.
+        """
+        import yfinance as yf
+        from datetime import datetime
+        
+        # Normalize symbol for yfinance
+        yf_symbol = symbol if symbol.startswith("^") else f"{symbol}.NS"
+        
+        logger.info(f"Fetching quote from yfinance for {yf_symbol}...")
+        
+        # Download last 5 days of data
+        ticker = yf.Ticker(yf_symbol)
+        hist = ticker.history(period="5d")
+        
+        if hist.empty or len(hist) < 2:
+            raise Exception(f"No data available from yfinance for {yf_symbol}")
+        
+        # Extract latest and previous close
+        latest_close = float(hist['Close'].iloc[-1])
+        previous_close = float(hist['Close'].iloc[-2])
+        latest_volume = int(hist['Volume'].iloc[-1])
+        
+        # Calculate change
+        change = latest_close - previous_close
+        percent_change = (change / previous_close) * 100 if previous_close else 0
+        
+        logger.info(f"✅ yfinance quote: {symbol} = ₹{latest_close:.2f}")
+        
+        return StockQuote(
+            symbol=symbol,
+            price=latest_close,
+            change=change,
+            percent_change=percent_change,
+            volume=latest_volume,
+            timestamp=datetime.now().isoformat(),
+            previous_close=previous_close,
+            currency="INR",
+            exchange="NSE",
+            market_state="REGULAR",
+            is_demo=False
+        )
     
     # Demo data methods
     async def _get_demo_quote(self, symbol: str) -> StockQuote:
