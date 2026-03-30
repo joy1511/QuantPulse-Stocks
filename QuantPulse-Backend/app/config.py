@@ -94,6 +94,7 @@ ALLOWED_ORIGINS = [
     "https://quantpulse-stocks-frontend.onrender.com",
     "https://quantpulse-stocks-backend.onrender.com",
     # Vercel deployments (main + preview URLs)
+    "https://quant-pulse-stocks.vercel.app",
     "https://quantpulse.vercel.app",
     "https://quantpulse-stocks.vercel.app",
     # Netlify
