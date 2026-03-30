@@ -53,8 +53,8 @@ class ProviderFactory:
         Get stock quote with automatic fallback logic.
         
         Flow (AUTO mode):
-        1. Try IndianAPI (works for all NSE/BSE stocks)
-        2. If fails, try yfinance (extract from latest historical data)
+        1. Try yfinance first (most accurate live data locally)
+        2. If fails, try IndianAPI
         3. If fails, return demo data
         
         Args:
@@ -77,23 +77,31 @@ class ProviderFactory:
                     return await self._get_demo_quote(symbol)
             return await self._get_demo_quote(symbol)
         
-        # AUTO / INDIANAPI mode: IndianAPI → yfinance → Demo
+        # AUTO / INDIANAPI mode: yfinance → IndianAPI → Demo
+        # Priority changed: yfinance provides more accurate live prices locally
         try:
-            return await self._try_primary_quote(symbol)
-        except Exception as e:
-            logger.warning(f"Primary provider (IndianAPI) failed for {symbol}: {str(e)}")
-            
-            # Try yfinance as fallback before demo data
-            # On cloud, yfinance live quotes are often blocked — skip to avoid 30s timeout
-            try:
-                from ..config import IS_CLOUD
-                if IS_CLOUD:
-                    logger.info(f"Skipping yfinance live quote on cloud (often blocked)")
-                    raise Exception("yfinance live quotes unreliable on cloud")
-                logger.info(f"Trying yfinance fallback for {symbol}...")
+            from ..config import IS_CLOUD
+            if IS_CLOUD:
+                # On cloud, yfinance is often blocked, use IndianAPI first
+                logger.info(f"Cloud environment: trying IndianAPI first for {symbol}")
+                try:
+                    return await self._try_primary_quote(symbol)
+                except Exception as e:
+                    logger.warning(f"IndianAPI failed on cloud for {symbol}: {str(e)}")
+                    raise
+            else:
+                # Locally, yfinance is more accurate
+                logger.info(f"Local environment: trying yfinance first for {symbol}")
                 return await self._get_quote_from_yfinance(symbol)
-            except Exception as yf_error:
-                logger.warning(f"yfinance fallback also failed for {symbol}: {str(yf_error)}")
+        except Exception as e:
+            logger.warning(f"Primary source failed for {symbol}: {str(e)}")
+            
+            # Try IndianAPI as fallback
+            try:
+                logger.info(f"Trying IndianAPI fallback for {symbol}...")
+                return await self._try_primary_quote(symbol)
+            except Exception as indian_error:
+                logger.warning(f"IndianAPI fallback also failed for {symbol}: {str(indian_error)}")
                 logger.warning(f"Falling back to demo data for {symbol}")
                 return await self._get_demo_quote(symbol)
     

@@ -98,7 +98,8 @@ export function MarketMovers({ onStockClick }: MarketMoversProps) {
                     setLosers(data.top_losers);
                     setError(null);
                 }
-            } catch {
+            } catch (err) {
+                console.error("Market Movers fetch error:", err);
                 if (!cancelled) setError("Market data unavailable");
             } finally {
                 if (!cancelled) setIsLoading(false);
@@ -126,7 +127,18 @@ export function MarketMovers({ onStockClick }: MarketMoversProps) {
         );
     }
 
-    if (error || (gainers.length === 0 && losers.length === 0)) {
+    if (error) {
+        return (
+            <div className="rounded-2xl border border-[#2A2A2A] bg-[rgba(30, 30, 30, 0.9)] p-4">
+                <div className="flex items-center gap-2 text-[#A0A0A0]">
+                    <Flame className="size-4" />
+                    <span className="text-xs">Market movers temporarily unavailable</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (gainers.length === 0 && losers.length === 0) {
         return null;
     }
 
