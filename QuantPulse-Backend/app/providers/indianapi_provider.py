@@ -174,7 +174,7 @@ class IndianAPIProvider(BaseStockProvider):
                 "3mo": "6m",
                 "6mo": "6m",
                 "1y": "1yr",
-                "2y": "3yr",
+                "2y": "1yr",   # 1yr gives daily candles; 3yr gives weekly (too sparse for LSTM)
                 "5y": "5yr",
                 "10y": "10yr",
                 "max": "max"

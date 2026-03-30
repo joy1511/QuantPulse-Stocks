@@ -71,11 +71,11 @@ export function DashboardPage() {
     setSelectedStock(ticker.toUpperCase());
   };
 
-  // Use V2 live price if available, fallback to V1
-  const livePrice = v2Data?.stock_price?.current_price ?? stockData?.currentPrice ?? 0;
-  const prevClose = v2Data?.stock_price?.previous_close ?? stockData?.previousClose ?? 0;
-  const dayChange = v2Data?.stock_price?.day_change ?? stockData?.change ?? 0;
-  const dayChangePct = v2Data?.stock_price?.day_change_pct ?? stockData?.changePercent ?? 0;
+  // Use V1 live quote price if available (more current), fallback to V2 historical close
+  const livePrice = stockData?.currentPrice ?? v2Data?.stock_price?.current_price ?? 0;
+  const prevClose = stockData?.previousClose ?? v2Data?.stock_price?.previous_close ?? 0;
+  const dayChange = stockData?.change ?? v2Data?.stock_price?.day_change ?? 0;
+  const dayChangePct = stockData?.changePercent ?? v2Data?.stock_price?.day_change_pct ?? 0;
   const isPositive = dayChange >= 0;
 
   // Signal config

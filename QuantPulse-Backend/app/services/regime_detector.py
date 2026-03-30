@@ -83,11 +83,11 @@ def detect_regime(nifty_df: pd.DataFrame) -> dict:
                 "error": "Not enough aligned observations",
             }
 
-        # Fit the HMM
+        # Fit the HMM — use diagonal covariance for numerical stability
         logger.info(f"🔬 Fitting GaussianHMM on {len(observations)} Nifty observations...")
         model = GaussianHMM(
             n_components=3,
-            covariance_type="full",
+            covariance_type="diag",   # More stable than "full" on real market data
             n_iter=200,
             random_state=42,
             verbose=False,
@@ -102,12 +102,11 @@ def detect_regime(nifty_df: pd.DataFrame) -> dict:
         current_state = int(hidden_states[-1])
         current_confidence = float(state_posteriors[-1][current_state])
 
-        # Auto-label by variance: get the variance (diagonal of covariance)
-        # For each state, sum the variances across features
+        # Auto-label by variance — for "diag" type, covars_ shape is (n_states, n_features)
         state_variances = {}
         for i in range(3):
-            cov_matrix = model.covars_[i]
-            total_var = np.trace(cov_matrix)  # Sum of diagonal = total variance
+            cov = model.covars_[i]
+            total_var = float(np.sum(cov))  # sum of diagonal variances
             state_variances[i] = total_var
 
         # Sort states by variance
