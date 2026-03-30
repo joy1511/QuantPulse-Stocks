@@ -193,9 +193,13 @@ app.include_router(market.router)
 async def startup_event():
     """Initialize application on startup"""
     
-    # Initialize database
+    # Initialize SQLite database
     from app.database import init_db
     init_db()
+    
+    # Initialize MongoDB connection
+    from app.mongodb import connect_to_mongodb
+    await connect_to_mongodb()
     
     # Validate configuration and log startup information
     config_status = validate_and_log_configuration()
@@ -232,6 +236,10 @@ async def startup_event():
 async def shutdown_event():
     """Cleanup on application shutdown"""
     logger.info("🛑 Application shutting down...")
+    
+    # Close MongoDB connection
+    from app.mongodb import close_mongodb_connection
+    await close_mongodb_connection()
     
     # Clear cache and cleanup background tasks
     from app.services.cache_service import cache_service
