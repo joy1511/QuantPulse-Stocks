@@ -229,6 +229,7 @@ async def analyze_ticker(ticker: str):
     # =========================================================================
     # OHLC — Append last 90 days of daily price data for the frontend chart
     # =========================================================================
+    import math
     ohlc_data = []
     try:
         if _ohlc_snapshot is not None and not _ohlc_snapshot.empty:
@@ -238,13 +239,25 @@ async def analyze_ticker(ticker: str):
                 df_tail.index = df_tail.index.tz_convert(None)
             for date, row in df_tail.iterrows():
                 try:
+                    # Convert to float and check for NaN
+                    open_val = float(row["Open"])
+                    high_val = float(row["High"])
+                    low_val = float(row["Low"])
+                    close_val = float(row["Close"])
+                    volume_val = float(row.get("Volume", 0))
+                    
+                    # Skip rows with NaN values
+                    if any(math.isnan(v) for v in [open_val, high_val, low_val, close_val]):
+                        logger.debug(f"Skipping OHLC row {date}: contains NaN")
+                        continue
+                    
                     ohlc_data.append({
                         "date": str(date)[:10],
-                        "open": round(float(row["Open"]), 2),
-                        "high": round(float(row["High"]), 2),
-                        "low": round(float(row["Low"]), 2),
-                        "close": round(float(row["Close"]), 2),
-                        "volume": int(float(row.get("Volume", 0))),
+                        "open": round(open_val, 2),
+                        "high": round(high_val, 2),
+                        "low": round(low_val, 2),
+                        "close": round(close_val, 2),
+                        "volume": int(volume_val) if not math.isnan(volume_val) else 0,
                     })
                 except Exception as row_err:
                     logger.debug(f"Skipping OHLC row {date}: {row_err}")

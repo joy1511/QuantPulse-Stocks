@@ -313,13 +313,24 @@ def predict(ticker: str, target_df: pd.DataFrame = None) -> dict:
         outlook = "Neutral Outlook"
 
     # Build features summary (latest values for the frontend / agents)
+    import math
     latest = features_df.iloc[-1]
+    
+    # Helper function to handle NaN values
+    def safe_float(value, decimals=2):
+        """Convert to float and handle NaN by returning None"""
+        try:
+            f = float(value)
+            return None if math.isnan(f) else round(f, decimals)
+        except (ValueError, TypeError):
+            return None
+    
     features_summary = {
-        "rsi": round(float(latest["rsi"]), 2),
-        "macd": round(float(latest["macd"]), 4),
-        "volatility": round(float(latest["volatility"]), 6),
-        "bollinger_pctb": round(float(latest["bollinger_pctb"]), 4),
-        "norm_atr": round(float(latest["norm_atr"]), 6),
+        "rsi": safe_float(latest["rsi"], 2),
+        "macd": safe_float(latest["macd"], 4),
+        "volatility": safe_float(latest["volatility"], 6),
+        "bollinger_pctb": safe_float(latest["bollinger_pctb"], 4),
+        "norm_atr": safe_float(latest["norm_atr"], 6),
     }
 
     logger.info(
