@@ -72,30 +72,31 @@ def run_research_analysis(
 
     try:
         # Phase B: Run the crew with timeout protection
-        import signal
-        
-        def timeout_handler(signum, frame):
-            raise TimeoutError(f"War Room execution exceeded {WAR_ROOM_TIMEOUT_SECONDS} seconds")
-        
-        # Set timeout (only on Unix systems)
-        if hasattr(signal, 'SIGALRM'):
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(WAR_ROOM_TIMEOUT_SECONDS)
-        
-        try:
-            result = _execute_crew(ticker, lstm_result, regime_result, vix_level, features_summary)
-            
-            # Cancel alarm if successful
-            if hasattr(signal, 'SIGALRM'):
-                signal.alarm(0)
-            
-            return result
-            
-        except TimeoutError:
+        # Use threading.Timer for cross-platform timeout (SIGALRM only works on Unix)
+        import threading
+        result_container = {}
+        exception_container = {}
+
+        def run_with_timeout():
+            try:
+                result_container['result'] = _execute_crew(ticker, lstm_result, regime_result, vix_level, features_summary)
+            except Exception as e:
+                exception_container['error'] = e
+
+        thread = threading.Thread(target=run_with_timeout, daemon=True)
+        thread.start()
+        thread.join(timeout=WAR_ROOM_TIMEOUT_SECONDS)
+
+        if thread.is_alive():
             logger.error(f"⏱️ Research Analysis timeout ({WAR_ROOM_TIMEOUT_SECONDS}s) - returning fallback report")
             result = _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
-            result["error"] = f"AI agents timed out ({WAR_ROOM_TIMEOUT_SECONDS}s limit) - showing technical analysis"
+            result["error"] = f"AI agents timed out ({WAR_ROOM_TIMEOUT_SECONDS}s limit)"
             return result
+
+        if 'error' in exception_container:
+            raise exception_container['error']
+
+        return result_container['result']
             
     except Exception as e:
         # Phase C: Fail-safe — return fallback report from REAL data
@@ -106,10 +107,6 @@ def run_research_analysis(
         result = _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
         result["error"] = error_msg
         return result
-    finally:
-        # Always cancel alarm
-        if hasattr(signal, 'SIGALRM'):
-            signal.alarm(0)
 
 
 # =============================================================================
