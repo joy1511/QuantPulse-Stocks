@@ -108,16 +108,49 @@ def save_to_cache(ticker: str, data_type: str, data):
 # Ticker Normalization
 # =============================================================================
 
+# Common ticker aliases that need to be mapped to correct symbols
+TICKER_ALIASES = {
+    "NIFTY": "^NSEI",
+    "NIFTY50": "^NSEI",
+    "NIFTY 50": "^NSEI",
+    "NIFTY_50": "^NSEI",
+    "BANKNIFTY": "^NSEBANK",
+    "BANK NIFTY": "^NSEBANK",
+    "SENSEX": "^BSESN",
+    "VIX": "^INDIAVIX",
+    "INDIAVIX": "^INDIAVIX",
+    "INDIA VIX": "^INDIAVIX",
+}
+
 def normalize_ticker(ticker: str) -> str:
     """
-    Ensure ticker has the .NS suffix for NSE stocks.
-    If the ticker already has a suffix (contains '.') or starts with '^', leave it.
+    Normalize ticker symbol to the correct format.
+    
+    1. Check if ticker is a known alias (e.g., NIFTY50 → ^NSEI)
+    2. If ticker starts with '^', leave it as-is (index symbol)
+    3. If ticker has '.', leave it as-is (already has exchange suffix)
+    4. Otherwise, add .NS suffix for NSE stocks
+    
+    Args:
+        ticker: Raw ticker symbol from user input
+        
+    Returns:
+        Normalized ticker symbol
     """
     ticker = ticker.strip().upper()
+    
+    # Check for known aliases first
+    if ticker in TICKER_ALIASES:
+        return TICKER_ALIASES[ticker]
+    
+    # If it starts with '^', it's an index symbol - leave as-is
     if ticker.startswith("^"):
         return ticker
+    
+    # If it has a '.', it already has an exchange suffix - leave as-is
     if "." not in ticker:
         return f"{ticker}.NS"
+    
     return ticker
 
 
@@ -394,31 +427,35 @@ async def _get_data_async(ticker: str, period: str = "2y") -> pd.DataFrame | Non
         return df if not df.empty else None
 
     if IS_CLOUD:
-        # ── CLOUD PATH: IndianAPI first ──────────────────────────────────
+        # ── CLOUD PATH: yfinance first (most reliable for historical data) ──
+        # yfinance works well on cloud and provides complete 2-year data
+        df = _download_safe_sync(ticker, period)
+        if df is not None and not df.empty:
+            logger.info(f"✅ Data source: yfinance (cloud) for {ticker}")
+            save_to_cache(ticker, f"historical_{period}", df)
+            return df
+
+        # Fallback to IndianAPI (may have limited historical data)
         if INDIANAPI_AVAILABLE and not ticker.startswith("^"):
-            logger.info(f"☁️ Cloud mode: trying IndianAPI for {ticker}...")
+            logger.info(f"🔄 yfinance failed, trying IndianAPI for {ticker}...")
             try:
                 df = _indianapi_to_df(await _indianapi_provider.get_historical_data(ticker, period=period))
-                if df is not None:
+                if df is not None and len(df) >= 200:  # Ensure we have enough data for LSTM
                     logger.info(f"✅ Data source: IndianAPI for {ticker}")
                     save_to_cache(ticker, f"historical_{period}", df)
                     return df
+                else:
+                    logger.warning(f"⚠️ IndianAPI returned insufficient data for {ticker}: {len(df) if df is not None else 0} rows")
             except Exception as e:
                 logger.warning(f"⚠️ IndianAPI failed for {ticker}: {e}")
 
+        # Try nsepython as another fallback
         if not ticker.startswith("^"):
             df = await _fetch_from_nsepython(ticker, period)
             if df is not None and not df.empty:
                 logger.info(f"✅ Data source: nsepython for {ticker}")
                 save_to_cache(ticker, f"historical_{period}", df)
                 return df
-
-        # yfinance as last resort on cloud
-        df = _download_safe_sync(ticker, period)
-        if df is not None and not df.empty:
-            logger.info(f"✅ Data source: yfinance (cloud fallback) for {ticker}")
-            save_to_cache(ticker, f"historical_{period}", df)
-            return df
 
     else:
         # ── LOCAL PATH: yfinance first ───────────────────────────────────

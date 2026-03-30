@@ -167,6 +167,9 @@ class IndianAPIProvider(BaseStockProvider):
             clean_symbol = symbol.replace(".NS", "").replace(".BO", "").strip().upper()
             
             # Map period to IndianAPI format
+            # Note: IndianAPI's "1yr" gives daily candles but may be incomplete
+            # "3yr" gives weekly candles (too sparse for LSTM)
+            # For best results, use yfinance for historical data
             period_map = {
                 "1d": "1m",
                 "5d": "1m",
@@ -174,7 +177,7 @@ class IndianAPIProvider(BaseStockProvider):
                 "3mo": "6m",
                 "6mo": "6m",
                 "1y": "1yr",
-                "2y": "1yr",   # 1yr gives daily candles; 3yr gives weekly (too sparse for LSTM)
+                "2y": "1yr",   # 1yr gives daily candles; 3yr gives weekly (too sparse)
                 "5y": "5yr",
                 "10y": "10yr",
                 "max": "max"
