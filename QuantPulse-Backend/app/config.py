@@ -87,12 +87,18 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "http://localhost:8080",
-    # Render deployments
+    # Render deployments (backend + any frontend on Render)
     "https://quantpulse.onrender.com",
     "https://quantpulse-frontend.onrender.com",
-    # Vercel / Netlify (if deployed there)
+    "https://quantpulse-stocks.onrender.com",
+    "https://quantpulse-stocks-frontend.onrender.com",
+    "https://quantpulse-stocks-backend.onrender.com",
+    # Vercel deployments (main + preview URLs)
     "https://quantpulse.vercel.app",
+    "https://quantpulse-stocks.vercel.app",
+    # Netlify
     "https://quantpulse.netlify.app",
+    "https://quantpulse-stocks.netlify.app",
 ]
 
 # Also allow any subdomain on onrender.com via env var override
