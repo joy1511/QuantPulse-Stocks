@@ -74,10 +74,19 @@ async def analyze_ticker(ticker: str):
     day_change = None
     day_change_pct = None
     if target_df is not None and not target_df.empty and len(target_df) >= 2:
+        import math
         current_price = float(target_df["Close"].iloc[-1])
         previous_close = float(target_df["Close"].iloc[-2])
-        day_change = round(current_price - previous_close, 2)
-        day_change_pct = round((day_change / previous_close) * 100, 2) if previous_close else 0
+        
+        # Handle NaN values
+        if math.isnan(current_price) or math.isnan(previous_close):
+            current_price = None
+            previous_close = None
+            day_change = None
+            day_change_pct = None
+        else:
+            day_change = round(current_price - previous_close, 2)
+            day_change_pct = round((day_change / previous_close) * 100, 2) if previous_close else 0
 
     # Validate target data
     if target_df is None:
