@@ -3,20 +3,19 @@ Authentication Service
 
 Handles user authentication, password hashing, and JWT token generation.
 Provides secure authentication mechanisms for the application.
+Uses MongoDB for user storage.
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict
 from jose import JWTError, jwt
-from passlib.context import CryptContext
-from sqlalchemy.orm import Session
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import os
 
-from app.models.user import User
 from app.schemas.user import TokenData
-from app.database import get_db
+from app.mongodb import get_collection
 
 # =============================================================================
 # Configuration
@@ -26,14 +25,6 @@ from app.database import get_db
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production-please-use-strong-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
-
-# Password hashing context
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=12,
-    bcrypt__ident="2b"  # Use bcrypt 2b variant
-)
 
 # OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -53,7 +44,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         bool: True if password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def get_password_hash(password: str) -> str:
     """
@@ -65,7 +56,9 @@ def get_password_hash(password: str) -> str:
     Returns:
         str: Hashed password
     """
-    return pwd_context.hash(password)
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 # =============================================================================
 # JWT Token Functions
@@ -128,35 +121,35 @@ def decode_access_token(token: str) -> TokenData:
         raise credentials_exception
 
 # =============================================================================
-# User Authentication Functions
+# User Authentication Functions (MongoDB)
 # =============================================================================
 
-def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+async def authenticate_user(email: str, password: str) -> Optional[Dict]:
     """
     Authenticate a user by email and password.
     
     Args:
-        db: Database session
         email: User email
         password: Plain text password
         
     Returns:
-        User: User object if authentication successful, None otherwise
+        Dict: User document if authentication successful, None otherwise
     """
-    user = db.query(User).filter(User.email == email).first()
+    users_collection = get_collection("users")
+    if users_collection is None:
+        return None
+    
+    user = await users_collection.find_one({"email": email})
     
     if not user:
         return None
     
-    if not verify_password(password, user.hashed_password):
+    if not verify_password(password, user["hashed_password"]):
         return None
     
     return user
 
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict:
     """
     Get the current authenticated user from JWT token.
     
@@ -164,10 +157,9 @@ def get_current_user(
     
     Args:
         token: JWT token from Authorization header
-        db: Database session
         
     Returns:
-        User: Current authenticated user
+        Dict: Current authenticated user document
         
     Raises:
         HTTPException: If token is invalid or user not found
@@ -180,12 +172,16 @@ def get_current_user(
     
     token_data = decode_access_token(token)
     
-    user = db.query(User).filter(User.email == token_data.email).first()
+    users_collection = get_collection("users")
+    if users_collection is None:
+        raise credentials_exception
+    
+    user = await users_collection.find_one({"email": token_data.email})
     
     if user is None:
         raise credentials_exception
     
-    if not user.is_active:
+    if not user.get("is_active", True):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user account"
@@ -193,9 +189,7 @@ def get_current_user(
     
     return user
 
-def get_current_active_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
+async def get_current_active_user(current_user: Dict = Depends(get_current_user)) -> Dict:
     """
     Get current active user (additional check for active status).
     
@@ -203,21 +197,19 @@ def get_current_active_user(
         current_user: Current user from get_current_user dependency
         
     Returns:
-        User: Current active user
+        Dict: Current active user
         
     Raises:
         HTTPException: If user is inactive
     """
-    if not current_user.is_active:
+    if not current_user.get("is_active", True):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Inactive user"
         )
     return current_user
 
-def get_current_admin_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
+async def get_current_admin_user(current_user: Dict = Depends(get_current_user)) -> Dict:
     """
     Get current user and verify admin privileges.
     
@@ -225,12 +217,12 @@ def get_current_admin_user(
         current_user: Current user from get_current_user dependency
         
     Returns:
-        User: Current admin user
+        Dict: Current admin user
         
     Raises:
         HTTPException: If user is not an admin
     """
-    if not current_user.is_admin:
+    if not current_user.get("is_admin", False):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
