@@ -22,7 +22,7 @@ router = APIRouter(
 
 # ── Simple In-Memory Cache ──────────────────────────────────────────
 _trending_cache: dict = {"data": None, "timestamp": 0}
-TRENDING_CACHE_TTL = 180  # 3 minutes
+TRENDING_CACHE_TTL = 300  # 5 minutes (increased from 3 to reduce API calls)
 
 
 async def _fetch_trending_from_indianapi() -> dict:
@@ -31,7 +31,8 @@ async def _fetch_trending_from_indianapi() -> dict:
     if INDIANAPI_KEY:
         headers["X-API-Key"] = INDIANAPI_KEY
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    # Increased timeout for trending endpoint (can be slow on free tier)
+    async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.get(
             "https://stock.indianapi.in/trending",
             headers=headers,
