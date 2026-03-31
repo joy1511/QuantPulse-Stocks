@@ -33,7 +33,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     """Schema for token payload data"""
     email: Optional[str] = None
-    user_id: Optional[int] = None
+    user_id: Optional[str] = None  # MongoDB ObjectId as string
 
 # =============================================================================
 # User Response Schemas
@@ -41,7 +41,7 @@ class TokenData(BaseModel):
 
 class UserResponse(BaseModel):
     """Schema for user data in responses (excludes sensitive info)"""
-    id: int
+    id: str  # MongoDB ObjectId as string
     email: str
     full_name: Optional[str]
     is_active: bool
@@ -59,7 +59,7 @@ class UserUpdate(BaseModel):
 
 class PasswordChange(BaseModel):
     """Schema for changing password"""
-    current_password: str
+    old_password: str
     new_password: str = Field(..., min_length=8, max_length=100)
     
     @validator('new_password')
