@@ -39,26 +39,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setToken(storedToken);
                 setUser(JSON.parse(storedUser));
                 
-                // Verify token is still valid by fetching current user
-                authService.getCurrentUser(storedToken)
-                    .then(userData => {
-                        setUser(userData);
+                // Verify token is still valid by fetching current user (with timeout)
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Token verification timeout')), 5000)
+                );
+                
+                Promise.race([
+                    authService.getCurrentUser(storedToken),
+                    timeoutPromise
+                ])
+                    .then((userData) => {
+                        setUser(userData as User);
                         localStorage.setItem('user_data', JSON.stringify(userData));
                     })
-                    .catch(() => {
-                        // Token invalid, clear everything
-                        localStorage.removeItem('auth_token');
-                        localStorage.removeItem('user_data');
-                        setToken(null);
-                        setUser(null);
+                    .catch((err) => {
+                        // Token invalid or timeout, but don't clear - let user continue with cached data
+                        console.warn('Token verification failed:', err.message);
+                        // Keep the cached user data for now
+                    })
+                    .finally(() => {
+                        setIsLoading(false);
                     });
             } catch (e) {
                 console.error('Failed to restore session', e);
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user_data');
+                setIsLoading(false);
             }
+        } else {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, []);
 
     const login = async (email: string, password: string) => {

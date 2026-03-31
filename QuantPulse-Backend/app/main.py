@@ -195,44 +195,77 @@ app.include_router(portfolio.router)
 async def startup_event():
     """Initialize application on startup"""
     
-    # Initialize SQLite database
-    from app.database import init_db
-    init_db()
+    logger.info("=" * 60)
+    logger.info("🚀 Starting QuantPulse Backend...")
+    logger.info("=" * 60)
     
-    # Initialize MongoDB connection
-    from app.mongodb import connect_to_mongodb
-    await connect_to_mongodb()
+    # Step 1: Initialize SQLite database
+    try:
+        logger.info("📦 Step 1/4: Initializing SQLite database...")
+        from app.database import init_db
+        init_db()
+        logger.info("✅ SQLite database initialized")
+    except Exception as e:
+        logger.error(f"❌ SQLite initialization failed: {e}")
+        # Continue anyway - not critical
     
-    # Validate configuration and log startup information
-    config_status = validate_and_log_configuration()
-    
-    # Initialize services (they will self-configure based on available keys)
-    from app.services.stock_service import stock_service
-    service_status = stock_service.get_service_status()
-    
-    logger.info("🏗️ Production-grade market data engine initializing...")
-    logger.info(f"📊 Stock service status: {service_status['status']}")
-    logger.info(f"🔧 Provider mode: {service_status['provider_status']['mode']}")
-    
-    if service_status['provider_status']['primary_available']:
-        primary_name = service_status['provider_status'].get('primary_provider', 'IndianAPI')
-        logger.info(f"✅ Primary provider ({primary_name}) available")
-    
-    if service_status['provider_status']['fallback_available']:
-        fallback_name = service_status['provider_status'].get('fallback_provider', 'Unknown')
-        logger.info(f"✅ Fallback provider ({fallback_name}) available")
-    
-    if DEMO_MODE:
-        logger.warning("🔄 Running in DEMO MODE - serving simulated data")
-        if IS_RAILWAY:
-            logger.warning("🔄 Configure API keys in Railway dashboard for live data")
+    # Step 2: Initialize MongoDB connection
+    try:
+        logger.info("📦 Step 2/4: Connecting to MongoDB...")
+        from app.mongodb import connect_to_mongodb
+        mongo_connected = await connect_to_mongodb()
+        if mongo_connected:
+            logger.info("✅ MongoDB connected successfully")
         else:
-            logger.warning("🔄 To enable live data, configure INDIANAPI_KEY")
-    else:
-        logger.info("📊 Running in LIVE MODE - serving real market data")
+            logger.warning("⚠️ MongoDB connection failed - some features may be limited")
+    except Exception as e:
+        logger.error(f"❌ MongoDB connection error: {e}")
+        # Continue anyway - app can work without MongoDB
     
+    # Step 3: Validate configuration
+    try:
+        logger.info("📦 Step 3/4: Validating configuration...")
+        config_status = validate_and_log_configuration()
+        logger.info("✅ Configuration validated")
+    except Exception as e:
+        logger.error(f"❌ Configuration validation failed: {e}")
+    
+    # Step 4: Initialize services
+    try:
+        logger.info("📦 Step 4/4: Initializing stock service...")
+        from app.services.stock_service import stock_service
+        service_status = stock_service.get_service_status()
+        
+        logger.info("🏗️ Production-grade market data engine initializing...")
+        logger.info(f"📊 Stock service status: {service_status['status']}")
+        logger.info(f"🔧 Provider mode: {service_status['provider_status']['mode']}")
+        
+        if service_status['provider_status']['primary_available']:
+            primary_name = service_status['provider_status'].get('primary_provider', 'IndianAPI')
+            logger.info(f"✅ Primary provider ({primary_name}) available")
+        
+        if service_status['provider_status']['fallback_available']:
+            fallback_name = service_status['provider_status'].get('fallback_provider', 'Unknown')
+            logger.info(f"✅ Fallback provider ({fallback_name}) available")
+        
+        if DEMO_MODE:
+            logger.warning("🔄 Running in DEMO MODE - serving simulated data")
+            if IS_RAILWAY:
+                logger.warning("🔄 Configure API keys in Railway dashboard for live data")
+            else:
+                logger.warning("🔄 To enable live data, configure INDIANAPI_KEY")
+        else:
+            logger.info("📊 Running in LIVE MODE - serving real market data")
+        
+        logger.info("✅ Stock service initialized")
+    except Exception as e:
+        logger.error(f"❌ Stock service initialization failed: {e}")
+        logger.error("⚠️ Application will start but stock features may not work")
+    
+    logger.info("=" * 60)
     logger.info("🎯 Application startup complete - ready to serve requests")
     logger.info("ℹ️ LSTM model will load lazily on first prediction request")
+    logger.info("=" * 60)
 
 @app.on_event("shutdown")
 async def shutdown_event():
