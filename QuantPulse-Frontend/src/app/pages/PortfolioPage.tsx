@@ -201,10 +201,15 @@ export function PortfolioPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [priceFetchStatus, setPriceFetchStatus] = useState<string>("");
 
-    // Load holdings from localStorage
-    const loadHoldings = useCallback(() => {
-        const h = getHoldings();
-        setHoldings(h);
+    // Load holdings from MongoDB
+    const loadHoldings = useCallback(async () => {
+        try {
+            const h = await getHoldings();
+            setHoldings(h);
+        } catch (error) {
+            console.error("Failed to load holdings:", error);
+            setHoldings([]);
+        }
     }, []);
 
     useEffect(() => {
@@ -262,26 +267,30 @@ export function PortfolioPage() {
     }, [fetchCurrentPrices]);
 
     // CRUD handlers
-    const handleSave = (data: HoldingFormData) => {
-        if (editingHolding) {
-            updateHolding(editingHolding.id, {
-                symbol: data.symbol,
-                buyPrice: parseFloat(data.buyPrice),
-                quantity: parseInt(data.quantity),
-                buyDate: data.buyDate,
-                notes: data.notes,
-            });
-        } else {
-            addHolding({
-                symbol: data.symbol,
-                buyPrice: parseFloat(data.buyPrice),
-                quantity: parseInt(data.quantity),
-                buyDate: data.buyDate,
-                notes: data.notes,
-            });
+    const handleSave = async (data: HoldingFormData) => {
+        try {
+            if (editingHolding) {
+                await updateHolding(editingHolding.id, {
+                    symbol: data.symbol,
+                    buyPrice: parseFloat(data.buyPrice),
+                    quantity: parseInt(data.quantity),
+                    buyDate: data.buyDate,
+                    notes: data.notes,
+                });
+            } else {
+                await addHolding({
+                    symbol: data.symbol,
+                    buyPrice: parseFloat(data.buyPrice),
+                    quantity: parseInt(data.quantity),
+                    buyDate: data.buyDate,
+                    notes: data.notes,
+                });
+            }
+            setEditingHolding(null);
+            await loadHoldings();
+        } catch (error) {
+            alert(error instanceof Error ? error.message : "Failed to save holding");
         }
-        setEditingHolding(null);
-        loadHoldings();
     };
 
     const handleEdit = (h: PortfolioHolding) => {
@@ -289,9 +298,13 @@ export function PortfolioPage() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id: string) => {
-        deleteHolding(id);
-        loadHoldings();
+    const handleDelete = async (id: string) => {
+        try {
+            await deleteHolding(id);
+            await loadHoldings();
+        } catch (error) {
+            alert(error instanceof Error ? error.message : "Failed to delete holding");
+        }
     };
 
     const handleAddNew = () => {
@@ -614,7 +627,7 @@ export function PortfolioPage() {
                 {/* Footer */}
                 <div className="mt-8 pt-6 border-t border-[rgba(74, 158, 255, 0.15)]">
                     <p className="text-center text-[10px] text-[#A0A0A0] uppercase tracking-widest">
-                        QuantPulse India • Portfolio data stored locally in your browser • {new Date().getFullYear()}
+                        QuantPulse India • Portfolio data securely stored in MongoDB • {new Date().getFullYear()}
                     </p>
                 </div>
             </div>

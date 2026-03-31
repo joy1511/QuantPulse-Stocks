@@ -1,12 +1,12 @@
 /**
  * Authentication API Service
- * Connects to QuantPulse Backend Database
+ * Connects to QuantPulse Backend Database with MongoDB
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export interface User {
-  id: number;
+  id: string;  // MongoDB ObjectId as string
   email: string;
   full_name: string;
   is_active: boolean;
@@ -18,6 +18,7 @@ export interface User {
 export interface LoginResponse {
   access_token: string;
   token_type: string;
+  user: User;
 }
 
 export interface RegisterData {
@@ -32,74 +33,84 @@ export interface LoginData {
 }
 
 /**
- * Register a new user (DUMMY MODE - accepts any credentials)
+ * Register a new user
  */
 export async function register(data: RegisterData): Promise<User> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Return dummy user data
-  return {
-    id: 1,
-    email: data.email,
-    full_name: data.full_name || "Demo User",
-    is_active: true,
-    is_verified: true,
-    created_at: new Date().toISOString(),
-    last_login: null
-  };
+  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Registration failed" }));
+    throw new Error(error.detail || "Registration failed");
+  }
+
+  return response.json();
 }
 
 /**
- * Login user and get JWT token (DUMMY MODE - accepts any credentials)
+ * Login user and get JWT token
  */
 export async function login(data: LoginData): Promise<LoginResponse> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Return dummy token
-  return {
-    access_token: "dummy_token_" + Date.now(),
-    token_type: "bearer"
-  };
+  const response = await fetch(`${API_BASE_URL}/api/auth/login/json`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Login failed" }));
+    throw new Error(error.detail || "Invalid email or password");
+  }
+
+  return response.json();
 }
 
 /**
- * Get current user profile (DUMMY MODE)
+ * Get current user profile
  */
 export async function getCurrentUser(token: string): Promise<User> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  // Return dummy user data
-  return {
-    id: 1,
-    email: "demo@user.com",
-    full_name: "Demo User",
-    is_active: true,
-    is_verified: true,
-    created_at: new Date().toISOString(),
-    last_login: new Date().toISOString()
-  };
+  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to get user" }));
+    throw new Error(error.detail || "Failed to get user profile");
+  }
+
+  return response.json();
 }
 
 /**
- * Update user profile (DUMMY MODE)
+ * Update user profile
  */
 export async function updateProfile(token: string, data: Partial<User>): Promise<User> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // Return dummy updated user data
-  return {
-    id: 1,
-    email: data.email || "demo@user.com",
-    full_name: data.full_name || "Demo User",
-    is_active: true,
-    is_verified: true,
-    created_at: new Date().toISOString(),
-    last_login: new Date().toISOString()
-  };
+  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Update failed" }));
+    throw new Error(error.detail || "Failed to update profile");
+  }
+
+  return response.json();
 }
 
 /**

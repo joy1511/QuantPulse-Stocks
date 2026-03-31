@@ -59,6 +59,7 @@ from app.routers import ensemble
 from app.routers import v2_analysis
 from app.routers import auth
 from app.routers import market
+from app.routers import portfolio
 
 # Setup logging first
 setup_logging()
@@ -184,6 +185,7 @@ app.include_router(predictions.router)
 app.include_router(ensemble.router)
 app.include_router(v2_analysis.router)
 app.include_router(market.router)
+app.include_router(portfolio.router)
 
 # =============================================================================
 # Application Startup

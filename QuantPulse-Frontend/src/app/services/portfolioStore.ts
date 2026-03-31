@@ -1,18 +1,18 @@
 /**
- * Portfolio Store — localStorage CRUD for stock holdings
+ * Portfolio Store — MongoDB-backed CRUD for stock holdings
  *
  * Stores the user's manually-entered stock portfolio
- * (buy price, quantity, date, notes) in localStorage.
- *
- * Exposes getPortfolioContext() for feeding into AI agent analysis.
+ * (buy price, quantity, date, notes) in MongoDB via backend API.
  */
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface PortfolioHolding {
     id: string;
     symbol: string;       // e.g. "RELIANCE"
-    buyPrice: number;     // price per share at purchase
+    buyPrice: number;     // price per share at purchase (camelCase for frontend)
     quantity: number;     // number of shares
     buyDate: string;      // ISO date string (YYYY-MM-DD)
     notes: string;        // optional user notes
@@ -28,65 +28,164 @@ export interface EnrichedHolding extends PortfolioHolding {
     pnlPercent: number | null;
 }
 
-// ── Constants ────────────────────────────────────────────────────────
-
-const STORAGE_KEY = "quantpulse_portfolio";
+// Backend API response format (snake_case)
+interface HoldingAPIResponse {
+    id: string;
+    symbol: string;
+    buy_price: number;
+    quantity: number;
+    buy_date: string;
+    notes: string;
+    created_at: string;
+    user_id: string;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-function generateId(): string {
-    return `h_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+function getAuthToken(): string | null {
+    return localStorage.getItem("auth_token");
+}
+
+function toFrontendFormat(apiHolding: HoldingAPIResponse): PortfolioHolding {
+    return {
+        id: apiHolding.id,
+        symbol: apiHolding.symbol,
+        buyPrice: apiHolding.buy_price,
+        quantity: apiHolding.quantity,
+        buyDate: apiHolding.buy_date,
+        notes: apiHolding.notes,
+        createdAt: apiHolding.created_at
+    };
 }
 
 // ── CRUD ─────────────────────────────────────────────────────────────
 
-export function getHoldings(): PortfolioHolding[] {
+export async function getHoldings(): Promise<PortfolioHolding[]> {
+    const token = getAuthToken();
+    if (!token) {
+        throw new Error("Not authenticated");
+    }
+
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return [];
-        return JSON.parse(raw) as PortfolioHolding[];
-    } catch {
+        const response = await fetch(`${API_BASE_URL}/api/portfolio/holdings`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch holdings");
+        }
+
+        const apiHoldings: HoldingAPIResponse[] = await response.json();
+        return apiHoldings.map(toFrontendFormat);
+    } catch (error) {
+        console.error("Error fetching holdings:", error);
         return [];
     }
 }
 
-export function addHolding(
+export async function addHolding(
     holding: Omit<PortfolioHolding, "id" | "createdAt">
-): PortfolioHolding {
-    const newHolding: PortfolioHolding = {
-        ...holding,
+): Promise<PortfolioHolding> {
+    const token = getAuthToken();
+    if (!token) {
+        throw new Error("Not authenticated");
+    }
+
+    // Convert to API format (snake_case)
+    const apiData = {
         symbol: holding.symbol.toUpperCase().replace(/\.(NS|BO)$/i, ""),
-        id: generateId(),
-        createdAt: new Date().toISOString(),
+        buy_price: holding.buyPrice,
+        quantity: holding.quantity,
+        buy_date: holding.buyDate,
+        notes: holding.notes
     };
 
-    const holdings = getHoldings();
-    holdings.push(newHolding);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(holdings));
-    return newHolding;
+    const response = await fetch(`${API_BASE_URL}/api/portfolio/holdings`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(apiData)
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "Failed to add holding" }));
+        throw new Error(error.detail || "Failed to add holding");
+    }
+
+    const apiHolding: HoldingAPIResponse = await response.json();
+    return toFrontendFormat(apiHolding);
 }
 
-export function updateHolding(
+export async function updateHolding(
     id: string,
     updates: Partial<Omit<PortfolioHolding, "id" | "createdAt">>
-): PortfolioHolding | null {
-    const holdings = getHoldings();
-    const idx = holdings.findIndex((h) => h.id === id);
-    if (idx === -1) return null;
-
-    holdings[idx] = { ...holdings[idx], ...updates };
-    if (updates.symbol) {
-        holdings[idx].symbol = updates.symbol.toUpperCase().replace(/\.(NS|BO)$/i, "");
+): Promise<PortfolioHolding | null> {
+    const token = getAuthToken();
+    if (!token) {
+        throw new Error("Not authenticated");
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(holdings));
-    return holdings[idx];
+
+    // Convert to API format (snake_case)
+    const apiData: any = {};
+    if (updates.symbol !== undefined) {
+        apiData.symbol = updates.symbol.toUpperCase().replace(/\.(NS|BO)$/i, "");
+    }
+    if (updates.buyPrice !== undefined) {
+        apiData.buy_price = updates.buyPrice;
+    }
+    if (updates.quantity !== undefined) {
+        apiData.quantity = updates.quantity;
+    }
+    if (updates.buyDate !== undefined) {
+        apiData.buy_date = updates.buyDate;
+    }
+    if (updates.notes !== undefined) {
+        apiData.notes = updates.notes;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/portfolio/holdings/${id}`, {
+        method: "PUT",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(apiData)
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "Failed to update holding" }));
+        throw new Error(error.detail || "Failed to update holding");
+    }
+
+    const apiHolding: HoldingAPIResponse = await response.json();
+    return toFrontendFormat(apiHolding);
 }
 
-export function deleteHolding(id: string): boolean {
-    const holdings = getHoldings();
-    const filtered = holdings.filter((h) => h.id !== id);
-    if (filtered.length === holdings.length) return false;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+export async function deleteHolding(id: string): Promise<boolean> {
+    const token = getAuthToken();
+    if (!token) {
+        throw new Error("Not authenticated");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/portfolio/holdings/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        }
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "Failed to delete holding" }));
+        throw new Error(error.detail || "Failed to delete holding");
+    }
+
     return true;
 }
 
@@ -96,8 +195,8 @@ export function deleteHolding(id: string): boolean {
  * Returns a summary string of the user's portfolio,
  * suitable for injecting as extra context into the AI agent prompt.
  */
-export function getPortfolioContext(): string {
-    const holdings = getHoldings();
+export async function getPortfolioContext(): Promise<string> {
+    const holdings = await getHoldings();
     if (holdings.length === 0) return "";
 
     const lines = holdings.map(

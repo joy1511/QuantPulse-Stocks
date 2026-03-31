@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import * as authService from '../services/auth';
 
 interface User {
-    id: number;
+    id: string;  // MongoDB ObjectId as string
     email: string;
     full_name: string;
     is_active: boolean;
@@ -66,12 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setError(null);
             setIsLoading(true);
             
-            // Login and get token
+            // Login and get token + user data in one call
             const loginResponse = await authService.login({ email, password });
             const authToken = loginResponse.access_token;
-            
-            // Get user data
-            const userData = await authService.getCurrentUser(authToken);
+            const userData = loginResponse.user;
             
             // Store in state and localStorage
             setToken(authToken);

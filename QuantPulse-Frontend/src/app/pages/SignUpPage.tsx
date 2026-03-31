@@ -207,12 +207,6 @@ export function SignUpPage() {
               </Link>
             </p>
           </div>
-
-          <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-            <p className="text-xs text-center text-[#4CAF7D]">
-              <strong>Demo Mode:</strong> Enter any details to create an account instantly!
-            </p>
-          </div>
         </Card>
 
         <p className="text-center text-xs text-[#A0A0A0] mt-6">
