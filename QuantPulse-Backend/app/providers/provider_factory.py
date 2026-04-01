@@ -87,21 +87,21 @@ class ProviderFactory:
                 try:
                     return await self._try_primary_quote(symbol)
                 except Exception as e:
-                    logger.warning(f"IndianAPI failed on cloud for {symbol}: {str(e)}")
+                    logger.warning(f"IndianAPI failed on cloud for {symbol}: {type(e).__name__}: {str(e)}")
                     raise
             else:
                 # Locally, yfinance is more accurate
                 logger.info(f"Local environment: trying yfinance first for {symbol}")
                 return await self._get_quote_from_yfinance(symbol)
         except Exception as e:
-            logger.warning(f"Primary source failed for {symbol}: {str(e)}")
+            logger.warning(f"Primary source failed for {symbol}: {type(e).__name__}: {str(e)}")
             
             # Try IndianAPI as fallback
             try:
                 logger.info(f"Trying IndianAPI fallback for {symbol}...")
                 return await self._try_primary_quote(symbol)
             except Exception as indian_error:
-                logger.warning(f"IndianAPI fallback also failed for {symbol}: {str(indian_error)}")
+                logger.warning(f"IndianAPI fallback also failed for {symbol}: {type(indian_error).__name__}: {str(indian_error)}")
                 logger.warning(f"Falling back to demo data for {symbol}")
                 return await self._get_demo_quote(symbol)
     

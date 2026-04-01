@@ -30,6 +30,9 @@ logger = logging.getLogger(__name__)
 
 _MODEL = None
 _SCALER = None
+_IS_LOADING = False
+_LOAD_START_TIME = None
+_LOAD_END_TIME = None
 
 HF_REPO_ID = "joy1511/QuantPulse-Models"
 
@@ -73,7 +76,19 @@ def _load_model():
     - Clears memory aggressively after loading
     - Uses minimal TensorFlow configuration
     """
-    global _MODEL, _SCALER
+    global _MODEL, _SCALER, _IS_LOADING, _LOAD_START_TIME, _LOAD_END_TIME
+    
+    # Prevent concurrent loading
+    if _IS_LOADING:
+        logger.info("⏳ Model loading already in progress, waiting...")
+        return
+    
+    if _MODEL is not None and _SCALER is not None:
+        logger.info("✅ Model already loaded, skipping...")
+        return
+    
+    _IS_LOADING = True
+    _LOAD_START_TIME = __import__('time').time()
 
     try:
         from huggingface_hub import hf_hub_download
@@ -105,6 +120,7 @@ def _load_model():
         print(f"The LSTM predictor will return Neutral for all tickers.")
         print(f"{'='*60}\n")
         logger.error(f"❌ CRITICAL: Model download failed: {e}")
+        _IS_LOADING = False
         return
 
     try:
@@ -132,6 +148,10 @@ def _load_model():
         _SCALER = joblib.load(scaler_path)
         logger.info(f"✅ Scaler loaded: {type(_SCALER).__name__}")
         
+        _LOAD_END_TIME = __import__('time').time()
+        load_duration = _LOAD_END_TIME - _LOAD_START_TIME
+        logger.info(f"⏱️ Model loading completed in {load_duration:.1f}s")
+        
         # Clear memory after loading
         import gc
         gc.collect()
@@ -143,12 +163,43 @@ def _load_model():
         print(f"Error: {e}")
         print(f"{'='*60}\n")
         logger.error(f"❌ CRITICAL: Model load failed after download: {e}")
+    finally:
+        _IS_LOADING = False
 
 
 def init():
     """Public initializer — called from main.py startup event, NOT at import time.
     This lets uvicorn bind the port FIRST, then loads TF + model weights."""
     _load_model()
+
+
+def get_model_status() -> dict:
+    """Get current model loading status.
+    
+    Returns:
+        dict with keys:
+        - loaded: bool - Whether model is fully loaded
+        - loading: bool - Whether model is currently loading
+        - load_time: float | None - Time taken to load (seconds)
+        - error: str | None - Error message if loading failed
+    """
+    global _MODEL, _SCALER, _IS_LOADING, _LOAD_START_TIME, _LOAD_END_TIME
+    
+    loaded = _MODEL is not None and _SCALER is not None
+    load_time = None
+    
+    if _LOAD_START_TIME and _LOAD_END_TIME:
+        load_time = _LOAD_END_TIME - _LOAD_START_TIME
+    elif _IS_LOADING and _LOAD_START_TIME:
+        # Currently loading
+        load_time = __import__('time').time() - _LOAD_START_TIME
+    
+    return {
+        "loaded": loaded,
+        "loading": _IS_LOADING,
+        "load_time": round(load_time, 1) if load_time else None,
+        "error": None if loaded or _IS_LOADING else "Model failed to load"
+    }
 
 
 # =============================================================================

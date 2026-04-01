@@ -31,6 +31,35 @@ router = APIRouter(
 )
 
 
+@router.get("/model-status")
+async def get_model_status():
+    """
+    Get LSTM model loading status.
+    
+    Useful for frontend to check if model is ready before making analysis requests.
+    
+    Returns:
+        dict with keys:
+        - loaded: bool - Whether model is fully loaded
+        - loading: bool - Whether model is currently loading
+        - load_time: float | None - Time taken to load (seconds)
+        - message: str - Human-readable status message
+    """
+    from app.services.lstm_service import get_model_status
+    
+    status = get_model_status()
+    
+    # Add human-readable message
+    if status["loaded"]:
+        status["message"] = f"Model ready (loaded in {status['load_time']}s)"
+    elif status["loading"]:
+        status["message"] = f"Model loading... ({status['load_time']}s elapsed)"
+    else:
+        status["message"] = "Model not loaded - will load on first analysis request"
+    
+    return status
+
+
 @router.get("/analyze/{ticker}")
 async def analyze_ticker(ticker: str):
     """

@@ -12,6 +12,40 @@ const API_BASE_URL =
     : "https://quantpulse-stocks-backend.onrender.com");
 
 // =============================================================================
+// Timeout Helper
+// =============================================================================
+
+/**
+ * Fetch with timeout
+ * @param url - URL to fetch
+ * @param options - Fetch options
+ * @param timeout - Timeout in milliseconds (default: 30s)
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeout: number = 30000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout - server is taking too long to respond');
+    }
+    throw error;
+  }
+}
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -103,7 +137,7 @@ export interface ApiError {
  */
 export async function checkHealth(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`);
+    const response = await fetchWithTimeout(`${API_BASE_URL}/health`, {}, 5000);
     const data = await response.json();
     return data.status === "ok";
   } catch {
@@ -115,7 +149,11 @@ export async function checkHealth(): Promise<boolean> {
  * Fetch stock data for a symbol
  */
 export async function fetchStockData(symbol: string): Promise<StockData> {
-  const response = await fetch(`${API_BASE_URL}/stock/${symbol.toUpperCase()}`);
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/stock/${symbol.toUpperCase()}`,
+    {},
+    15000 // 15s timeout for stock quotes
+  );
 
   if (!response.ok) {
     const errorData = await response.json();
@@ -348,12 +386,15 @@ export interface V2AnalysisData {
 
 /**
  * Fetch V2 AI analysis (LSTM + HMM regime + War Room agents)
+ * Note: First request may take 60-90s due to LSTM model loading
  */
 export async function fetchV2Analysis(
   symbol: string,
 ): Promise<V2AnalysisData> {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/v2/analyze/${symbol.toUpperCase()}`,
+    {},
+    120000 // 120s timeout for AI analysis (LSTM loading can take 60s on first request)
   );
 
   if (!response.ok) {
@@ -393,7 +434,11 @@ export interface TrendingStocksData {
  * Fetch trending stocks (top gainers + losers)
  */
 export async function fetchTrendingStocks(): Promise<TrendingStocksData> {
-  const response = await fetch(`${API_BASE_URL}/api/market/trending`);
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/api/market/trending`,
+    {},
+    15000 // 15s timeout
+  );
 
   if (!response.ok) {
     throw new Error("Failed to fetch trending stocks");

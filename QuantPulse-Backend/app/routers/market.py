@@ -107,11 +107,16 @@ async def get_trending_stocks():
         return result
 
     except httpx.HTTPStatusError as e:
-        logger.error(f"❌ IndianAPI trending HTTP error: {e.response.status_code}")
+        error_body = ""
+        try:
+            error_body = e.response.text
+        except:
+            pass
+        logger.error(f"❌ IndianAPI trending HTTP error: {e.response.status_code} - {error_body}")
         raise HTTPException(status_code=502, detail="Failed to fetch trending stocks from data provider")
 
     except Exception as e:
-        logger.error(f"❌ Trending stocks fetch failed: {e}")
+        logger.error(f"❌ Trending stocks fetch failed: {type(e).__name__}: {str(e)}")
         # Return stale cache if available
         if _trending_cache["data"]:
             logger.warning("⚠️ Returning stale trending cache")

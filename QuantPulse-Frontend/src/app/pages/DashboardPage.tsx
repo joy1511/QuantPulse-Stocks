@@ -41,23 +41,33 @@ export function DashboardPage() {
     setIsLoading(true);
     setError(null);
 
-    // 1. Fetch V1 stock data (for company name)
+    // 1. Fetch V1 stock data (for company name) - fast
     try {
       const stock = await fetchStockData(symbol);
       setStockData(stock);
-    } catch {
+    } catch (err) {
+      console.warn("Stock data fetch failed:", err);
       setStockData(null);
     }
     setIsLoading(false);
 
     // 2. Fetch V2 AI Analysis — real OHLC + LSTM + HMM + War Room
+    // Note: First request may take 60-90s due to LSTM model loading from Hugging Face
     setIsV2Loading(true);
     try {
       const v2 = await fetchV2Analysis(symbol);
       setV2Data(v2);
+      setError(null);
     } catch (err) {
-      console.warn("V2 Analysis failed:", err);
+      console.error("V2 Analysis failed:", err);
       setV2Data(null);
+      if (err instanceof Error) {
+        if (err.message.includes('timeout')) {
+          setError("Analysis timed out. The server may be loading AI models (first request takes 60-90s). Please try again.");
+        } else {
+          setError(err.message);
+        }
+      }
     } finally {
       setIsV2Loading(false);
     }
@@ -189,7 +199,22 @@ export function DashboardPage() {
                 <div className="h-[250px] flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#2A2A2A] bg-[#1E1E1E]/20">
                   <Loader2 className="size-8 text-[#4A9EFF] animate-spin mb-4" />
                   <p className="text-[#A0A0A0] font-medium">Running AI Pipeline...</p>
-                  <p className="text-[#606060] text-xs mt-1">LSTM → HMM → Agent Debate (~15-30s)</p>
+                  <p className="text-[#606060] text-xs mt-1">LSTM → HMM → Agent Debate</p>
+                  <p className="text-[#606060] text-xs mt-2 max-w-md text-center">
+                    ⏱️ First request may take 60-90s while loading AI models from Hugging Face
+                  </p>
+                </div>
+              ) : error ? (
+                <div className="p-8 rounded-2xl border border-dashed border-[#E05252]/30 bg-[#E05252]/5 text-center">
+                  <AlertTriangle className="size-8 text-[#E05252] mx-auto mb-3" />
+                  <p className="text-[#E05252] text-sm font-medium mb-2">Analysis Failed</p>
+                  <p className="text-[#A0A0A0] text-xs max-w-md mx-auto">{error}</p>
+                  <button
+                    onClick={() => loadDashboardData(selectedStock)}
+                    className="mt-4 px-4 py-2 bg-[#4A9EFF] text-white text-sm rounded-lg hover:bg-[#3A8FEF] transition-colors"
+                  >
+                    Retry Analysis
+                  </button>
                 </div>
               ) : v2Data ? (
                 <div className="space-y-5">

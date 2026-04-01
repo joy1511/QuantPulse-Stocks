@@ -145,10 +145,15 @@ class IndianAPIProvider(BaseStockProvider):
             )
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"❌ IndianAPI HTTP error for {symbol}: {e.response.status_code}")
+            error_body = ""
+            try:
+                error_body = e.response.text
+            except:
+                pass
+            logger.error(f"❌ IndianAPI HTTP error for {symbol}: {e.response.status_code} - {error_body}")
             raise
         except Exception as e:
-            logger.error(f"❌ IndianAPI quote failed for {symbol}: {e}")
+            logger.error(f"❌ IndianAPI quote failed for {symbol}: {type(e).__name__}: {str(e)}")
             raise
     
     async def get_historical_data(self, symbol: str, period: str = "1y") -> HistoricalData:
@@ -264,10 +269,15 @@ class IndianAPIProvider(BaseStockProvider):
             )
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"❌ IndianAPI HTTP error for {symbol}: {e.response.status_code}")
+            error_body = ""
+            try:
+                error_body = e.response.text
+            except:
+                pass
+            logger.error(f"❌ IndianAPI HTTP error for {symbol}: {e.response.status_code} - {error_body}")
             raise
         except Exception as e:
-            logger.error(f"❌ IndianAPI historical failed for {symbol}: {e}")
+            logger.error(f"❌ IndianAPI historical failed for {symbol}: {type(e).__name__}: {str(e)}")
             raise
     
     async def get_company_profile(self, symbol: str) -> CompanyProfile:
@@ -326,10 +336,15 @@ class IndianAPIProvider(BaseStockProvider):
             )
             
         except httpx.HTTPStatusError as e:
-            logger.error(f"❌ IndianAPI HTTP error for {symbol}: {e.response.status_code}")
+            error_body = ""
+            try:
+                error_body = e.response.text
+            except:
+                pass
+            logger.error(f"❌ IndianAPI HTTP error for {symbol}: {e.response.status_code} - {error_body}")
             raise
         except Exception as e:
-            logger.error(f"❌ IndianAPI profile failed for {symbol}: {e}")
+            logger.error(f"❌ IndianAPI profile failed for {symbol}: {type(e).__name__}: {str(e)}")
             raise
     
     def _parse_market_cap(self, market_cap_str: str) -> float:
