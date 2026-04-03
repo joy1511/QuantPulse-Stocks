@@ -1,181 +1,174 @@
 # QuantPulse India
 
-QuantPulse India is a full-stack web application for analyzing Indian NSE stocks using market data, technical indicators, and news sentiment.
-This repository contains both the frontend and backend required to run the project locally or deploy it.
+> AI-powered stock analytics platform for Indian NSE markets with multi-agent predictions and real-time sentiment analysis.
 
-This README focuses on how to set up, configure, and run the project.
+## Overview
 
----
+QuantPulse India is a full-stack financial analytics platform that combines machine learning, multi-agent AI systems, and real-time market data to provide comprehensive stock analysis for the Indian National Stock Exchange (NSE).
 
-## Repository Structure
+### Key Features
 
-QuantPulse
-├── QuantPulse-Frontend
-├── QuantPulse-Backend
-├── .gitignore
-├── README.md
-└── ATTRIBUTIONS.md
-
----
+- **Multi-Agent AI System**: Three specialized AI agents (Fundamentalist, Technician, Risk Manager) collaborate to generate investment insights
+- **LSTM Price Predictions**: Deep learning model trained on historical NSE data for short-term momentum forecasting
+- **Market Regime Detection**: Rule-based system to identify Bull/Stable, Bear/Volatile, or Sideways market conditions
+- **Real-time Market Data**: Integration with multiple data providers (Finnhub, TwelveData, IndianAPI)
+- **News Sentiment Analysis**: Automated sentiment scoring from financial news sources
+- **Interactive Dashboard**: Real-time charts, market movers, and technical indicators
 
 ## Tech Stack
 
-Frontend
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- Charting libraries
+### Frontend
+- React 18 with TypeScript
+- Vite for build tooling
+- Tailwind CSS for styling
+- Recharts for data visualization
+- React Router for navigation
 
-Backend
-- REST API
-- News API integration
-- Market data services
-- Sentiment analysis logic
+### Backend
+- FastAPI (Python 3.11+)
+- SQLite + MongoDB for data persistence
+- TensorFlow/Keras for LSTM models
+- CrewAI for multi-agent orchestration
+- Groq API with Llama 3.3 (70B)
 
----
+## Quick Start
 
-## Environment Variables
+### Prerequisites
 
-Backend (QuantPulse-Backend/.env)
+- Node.js 18+ and npm
+- Python 3.11+
+- MongoDB Atlas account (free tier)
+- API keys for data providers
 
-Create a .env file inside the backend folder with the following:
+### Installation
 
-NEWS_API_KEY=your_news_api_key_here
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-username/quantpulse.git
+   cd quantpulse
+   ```
 
-This file must NOT be committed to GitHub.
+2. **Setup Backend**
+   ```bash
+   cd QuantPulse-Backend
+   pip install -r requirements.txt
+   cp .env.example .env
+   # Edit .env with your API keys and MongoDB URL
+   python run.py
+   ```
+   Backend runs at: http://localhost:8000
 
----
+3. **Setup Frontend**
+   ```bash
+   cd QuantPulse-Frontend
+   npm install
+   cp .env.example .env
+   # Edit .env with backend URL
+   npm run dev
+   ```
+   Frontend runs at: http://localhost:5173
 
-Frontend (QuantPulse-Frontend/.env)
+### Configuration
 
-Only public variables should be placed here:
+See [docs/MONGODB_SETUP.md](docs/MONGODB_SETUP.md) for MongoDB configuration.
 
-VITE_API_BASE_URL=http://localhost:8000
+Required environment variables:
+- `MONGODB_URL`: MongoDB connection string
+- `GROQ_API_KEY`: Groq API key for AI agents
+- `SERPER_API_KEY`: Serper API key for news search
+- `FINNHUB_API_KEY`: Finnhub API key for market data
+- `TWELVEDATA_API_KEY`: TwelveData API key
+- `INDIANAPI_KEY`: IndianAPI key for NSE data
 
-All frontend environment variables must start with VITE_.
+## Project Structure
 
----
+```
+quantpulse/
+├── QuantPulse-Backend/          # FastAPI backend
+│   ├── app/
+│   │   ├── models/              # Database models
+│   │   ├── routers/             # API endpoints
+│   │   ├── services/            # Business logic
+│   │   │   ├── agent_orchestrator.py    # Multi-agent AI system
+│   │   │   ├── lstm_service.py          # LSTM predictions
+│   │   │   └── regime_detector.py       # Market regime detection
+│   │   └── providers/           # Data provider integrations
+│   ├── models/                  # Trained ML models
+│   └── requirements.txt
+├── QuantPulse-Frontend/         # React frontend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── components/      # React components
+│   │   │   ├── pages/           # Page components
+│   │   │   └── services/        # API client
+│   │   └── main.tsx
+│   └── package.json
+└── docs/                        # Documentation
+```
 
-## Running the Project Locally
+## API Documentation
 
-### 1) Clone the Repository
+Once the backend is running, visit:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
-git clone https://github.com/your-username/quantpulse.git
-cd QuantPulse
+## Deployment
 
----
+### Backend (Render)
+- Configured via `render.yaml`
+- Uses Python 3.11.9 runtime
+- Set environment variables in Render dashboard
 
-### 2) Run the Backend
+### Frontend (Vercel)
+- Automatic deployment from Git
+- Update `VITE_API_BASE_URL` to production backend URL
+- Configure environment variables in Vercel dashboard
 
-Navigate to the backend folder:
+## Architecture
 
-cd QuantPulse-Backend
+### Multi-Agent AI System
+Three specialized agents collaborate using CrewAI:
+1. **Fundamentalist**: Analyzes news, macro conditions, and market sentiment
+2. **Technician**: Evaluates LSTM predictions and technical indicators
+3. **Risk Manager**: Synthesizes inputs and makes final recommendations
 
-If using Node.js:
+### LSTM Model
+- Bidirectional LSTM architecture
+- Trained on 50-200 NSE stocks with 5-10 years of historical data
+- Input: 60-day sequences with 6 technical features
+- Output: Bullish/Neutral/Bearish probability
 
-npm install
-npm start
-
-If using Python / FastAPI:
-
-pip install -r requirements.txt
-uvicorn main:app --reload
-
-Backend will run at:
-http://localhost:8000
-
-Test it by opening:
-http://localhost:8000/stock/TCS
-
----
-
-### 3) Run the Frontend
-
-Open a new terminal and navigate to the frontend folder:
-
-cd QuantPulse-Frontend
-
-Install dependencies:
-
-npm install
-
-Start the development server:
-
-npm run dev
-
-Frontend will run at:
-http://localhost:5173
-
----
-
-## Frontend ↔ Backend Connection
-
-The frontend communicates with the backend using the base URL defined in:
-
-QuantPulse-Frontend/.env
-
-Example:
-
-VITE_API_BASE_URL=http://localhost:8000
-
-Make sure the backend is running before opening the frontend.
-
----
-
-## Demo & Data Notes
-
-- Market data may be delayed or simulated
-- News sentiment is derived from recent articles
-- Confidence values are calculated using explainable logic
-- This project is intended for learning, demonstration, and prototyping
-
----
-
-## Deployment Notes
-
-Recommended setup:
-- Frontend: Vercel or Netlify
-- Backend: Render or Railway
-
-Before deployment:
-- Update VITE_API_BASE_URL to the hosted backend URL
-- Restrict CORS on the backend to the frontend domain
-- Set environment variables on the hosting platform
-
----
-
-## Disclaimer
-
-This application is not financial advice.
-All analytics and predictions are for educational purposes only.
-
----
-
-## Common Issues
-
-- CORS errors: Ensure backend allows the frontend domain
-- vite not found: Run commands inside QuantPulse-Frontend
-- Missing API key: Ensure backend .env is set correctly
-
----
-
-## Future Improvements
-
-- User authentication
-- Persistent database
-- Historical backtesting
-- Advanced indicators (RSI, MACD)
-- Real-time updates
-
----
+### Market Regime Detection
+Rule-based system analyzing Nifty 50:
+- 30-day returns and volatility
+- Classifies into Bull/Stable, Bear/Volatile, or Sideways
+- Confidence scoring based on signal strength
 
 ## Contributing
 
-Contributions and suggestions are welcome.
+Contributions are welcome! Please follow these steps:
 
 1. Fork the repository
-2. Create a new branch
-3. Make your changes
-4. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Disclaimer
+
+This application is for educational and informational purposes only. It is not financial advice. Always consult with a qualified financial advisor before making investment decisions.
+
+## Support
+
+For issues and questions:
+- Open an issue on GitHub
+- Check the [documentation](docs/)
+- Review API documentation at `/docs` endpoint
+
+---
+
+Built with ❤️ for the Indian stock market community

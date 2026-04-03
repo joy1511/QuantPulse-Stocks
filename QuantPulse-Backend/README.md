@@ -1,78 +1,133 @@
-# QuantPulse India Backend
+# QuantPulse Backend
 
-Backend API service for QuantPulse India stock analytics platform.
+FastAPI backend service for QuantPulse India stock analytics platform.
 
-## 📁 Project Structure
+## Features
 
-```
-quantpulse-backend/
-├── app/
-│   ├── __init__.py       # Package marker
-│   ├── config.py         # Configuration settings
-│   ├── main.py           # FastAPI application entry point
-│   └── routers/
-│       ├── __init__.py   # Routers package marker
-│       └── health.py     # Health check endpoints
-├── requirements.txt      # Python dependencies
-├── run.py               # Server startup script
-└── README.md            # This file
-```
+- RESTful API for stock data and analysis
+- Multi-agent AI system for investment insights
+- LSTM-based price predictions
+- Market regime detection
+- Real-time data from multiple providers
+- MongoDB and SQLite integration
+- Automatic API documentation
 
-## 🚀 Getting Started
+## Quick Start
 
-### 1. Create Virtual Environment (Recommended)
+### Prerequisites
+
+- Python 3.11+
+- MongoDB Atlas account
+- API keys (Groq, Serper, Finnhub, TwelveData, IndianAPI)
+
+### Installation
 
 ```bash
-cd quantpulse-backend
+# Create virtual environment
 python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Windows
-venv\Scripts\activate
-
-# Linux/Mac
-source venv/bin/activate
-```
-
-### 2. Install Dependencies
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 3. Run the Server
+# Configure environment
+cp .env.example .env
+# Edit .env with your API keys and MongoDB URL
 
-```bash
+# Run server
 python run.py
 ```
 
-Or using uvicorn directly:
+Server runs at: http://localhost:8000
 
-```bash
-uvicorn app.main:app --reload --port 8000
+### API Documentation
+
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## Project Structure
+
+```
+app/
+├── models/              # Database models
+├── routers/             # API endpoints
+│   ├── auth.py         # Authentication
+│   ├── market.py       # Market data
+│   ├── v2_analysis.py  # AI analysis
+│   └── health.py       # Health checks
+├── services/            # Business logic
+│   ├── agent_orchestrator.py    # Multi-agent AI
+│   ├── lstm_service.py          # LSTM predictions
+│   ├── regime_detector.py       # Market regime
+│   └── stock_service.py         # Stock data
+├── providers/           # Data provider integrations
+├── schemas/             # Pydantic schemas
+├── config.py           # Configuration
+├── database.py         # SQLite setup
+├── mongodb.py          # MongoDB setup
+└── main.py             # FastAPI app
 ```
 
-## 📚 API Endpoints
+## Key Endpoints
 
-| Method | Endpoint  | Description                    |
-|--------|-----------|--------------------------------|
-| GET    | `/`       | Welcome message                |
-| GET    | `/health` | Health check                   |
-| GET    | `/docs`   | Swagger UI documentation       |
-| GET    | `/redoc`  | ReDoc documentation            |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Health check |
+| GET | `/api/v1/stock/{symbol}` | Stock quote |
+| GET | `/api/v1/market-movers` | Top gainers/losers |
+| POST | `/api/v2/analyze/{symbol}` | AI-powered analysis |
+| GET | `/api/v2/model-status` | LSTM model status |
+| POST | `/auth/register` | User registration |
+| POST | `/auth/login` | User login |
 
-## 🔧 Configuration
+## Configuration
 
-Edit `app/config.py` to modify:
-- Allowed CORS origins
-- Server host/port
-- Application metadata
+Required environment variables in `.env`:
 
-## 🛣️ Future Roadmap
+```env
+# Database
+MONGODB_URL=mongodb+srv://...
+DATABASE_URL=sqlite:///./quantpulse.db
 
-- [ ] Stock data API (`/api/stocks`)
-- [ ] News sentiment API (`/api/news`)
-- [ ] AI predictions API (`/api/predictions`)
-- [ ] Database integration
-- [ ] Authentication
+# AI Services
+GROQ_API_KEY=your_groq_key
+SERPER_API_KEY=your_serper_key
 
-<!-- Railway deployment optimized for Python 3.11.9 -->
+# Data Providers
+FINNHUB_API_KEY=your_finnhub_key
+TWELVEDATA_API_KEY=your_twelvedata_key
+INDIANAPI_KEY=your_indianapi_key
+
+# Application
+SECRET_KEY=your_secret_key
+LOG_LEVEL=INFO
+```
+
+See [../docs/MONGODB_SETUP.md](../docs/MONGODB_SETUP.md) for MongoDB setup.
+
+## Development
+
+```bash
+# Run with auto-reload
+uvicorn app.main:app --reload --port 8000
+
+# Check logs
+tail -f logs/app.log
+```
+
+## Deployment
+
+Configured for Render deployment via `render.yaml`:
+
+- Python 3.11.9 runtime
+- Automatic health checks
+- Environment variables via dashboard
+- Uvicorn ASGI server
+
+## Architecture
+
+See [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) for detailed architecture documentation.
+
+## License
+
+MIT License - see [../LICENSE](../LICENSE) for details.
