@@ -5,6 +5,7 @@ Provides market-wide endpoints like trending stocks (top gainers/losers).
 Data sourced from IndianAPI with server-side caching.
 """
 
+import asyncio
 import logging
 import time
 from typing import Optional
@@ -32,13 +33,23 @@ async def _fetch_trending_from_indianapi() -> dict:
         headers["X-API-Key"] = INDIANAPI_KEY
 
     # Increased timeout for trending endpoint (can be slow on free tier)
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.get(
-            "https://stock.indianapi.in/trending",
-            headers=headers,
-        )
-        response.raise_for_status()
-        return response.json()
+    # Use retry logic to handle transient failures
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient(timeout=90.0) as client:
+                response = await client.get(
+                    "https://stock.indianapi.in/trending",
+                    headers=headers,
+                )
+                response.raise_for_status()
+                return response.json()
+        except (httpx.ConnectTimeout, httpx.ReadTimeout) as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"⚠️ Trending API timeout (attempt {attempt + 1}/{max_retries}), retrying...")
+                await asyncio.sleep(2)  # Wait 2s before retry
+                continue
+            raise  # Re-raise on final attempt
 
 
 def _normalize_stock(raw: dict) -> dict:

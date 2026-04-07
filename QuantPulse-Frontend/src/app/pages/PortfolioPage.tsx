@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
     getHoldings,
     addHolding,
@@ -204,6 +204,7 @@ export function PortfolioPage() {
     const [editingHolding, setEditingHolding] = useState<PortfolioHolding | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [priceFetchStatus, setPriceFetchStatus] = useState<string>("");
+    const hasFetchedPrices = useRef(false);
 
     // Load holdings from MongoDB
     const loadHoldings = useCallback(async () => {
@@ -216,7 +217,18 @@ export function PortfolioPage() {
         }
     }, []);
 
+    // Load cached enriched data on mount
     useEffect(() => {
+        try {
+            const cached = sessionStorage.getItem('portfolio_enriched');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                setEnriched(parsed);
+                hasFetchedPrices.current = true;
+            }
+        } catch (error) {
+            console.error('Failed to load cached portfolio:', error);
+        }
         loadHoldings();
     }, [loadHoldings]);
 
@@ -262,21 +274,50 @@ export function PortfolioPage() {
         }
 
         setEnriched(results);
+        
+        // Cache enriched data in sessionStorage
+        try {
+            sessionStorage.setItem('portfolio_enriched', JSON.stringify(results));
+        } catch (error) {
+            console.error('Failed to cache portfolio:', error);
+        }
+        
         setIsLoading(false);
         setPriceFetchStatus("");
     }, [holdings]);
 
-    // Only fetch prices once when holdings are first loaded or when explicitly refreshed
+    // Fetch prices when holdings change (only if not already fetched)
     useEffect(() => {
-        if (holdings.length > 0) {
-            // Only fetch if we don't have enriched data yet
-            if (enriched.length === 0 || enriched.length !== holdings.length) {
-                fetchCurrentPrices();
+        if (holdings.length > 0 && !hasFetchedPrices.current) {
+            // Check if we have cached data that matches current holdings
+            const cached = sessionStorage.getItem('portfolio_enriched');
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    // Verify cached data matches current holdings
+                    if (parsed.length === holdings.length) {
+                        const holdingIds = holdings.map(h => h.id).sort();
+                        const cachedIds = parsed.map((h: EnrichedHolding) => h.id).sort();
+                        if (JSON.stringify(holdingIds) === JSON.stringify(cachedIds)) {
+                            // Cache is valid, use it
+                            setEnriched(parsed);
+                            hasFetchedPrices.current = true;
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to validate cached portfolio:', error);
+                }
             }
-        } else {
+            // No valid cache, fetch fresh data
+            fetchCurrentPrices();
+            hasFetchedPrices.current = true;
+        } else if (holdings.length === 0) {
             setEnriched([]);
+            hasFetchedPrices.current = false;
+            sessionStorage.removeItem('portfolio_enriched');
         }
-    }, [holdings.length]); // Only depend on length change
+    }, [holdings, fetchCurrentPrices]);
 
     // CRUD handlers
     const handleSave = async (data: HoldingFormData) => {
@@ -299,6 +340,8 @@ export function PortfolioPage() {
                 });
             }
             setEditingHolding(null);
+            hasFetchedPrices.current = false; // Reset to fetch new prices
+            sessionStorage.removeItem('portfolio_enriched'); // Clear cache
             await loadHoldings();
         } catch (error) {
             alert(error instanceof Error ? error.message : "Failed to save holding");
@@ -313,6 +356,8 @@ export function PortfolioPage() {
     const handleDelete = async (id: string) => {
         try {
             await deleteHolding(id);
+            hasFetchedPrices.current = false; // Reset to fetch new prices
+            sessionStorage.removeItem('portfolio_enriched'); // Clear cache
             await loadHoldings();
         } catch (error) {
             alert(error instanceof Error ? error.message : "Failed to delete holding");
@@ -365,7 +410,11 @@ export function PortfolioPage() {
                             <span className="hidden sm:inline text-sm font-medium">Fetch Portfolio</span>
                         </button>
                         <button
-                            onClick={fetchCurrentPrices}
+                            onClick={() => {
+                                hasFetchedPrices.current = false;
+                                sessionStorage.removeItem('portfolio_enriched');
+                                fetchCurrentPrices();
+                            }}
                             disabled={isLoading}
                             className="flex items-center gap-2 px-4 py-2.5 text-[#A0A0A0] hover:text-[#F0F0F0] hover:bg-white/5 rounded-xl transition-all border border-[#2A2A2A]"
                         >

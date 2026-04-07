@@ -32,7 +32,8 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SERPER_API_KEY = os.getenv("SERPER_API_KEY")
 
 # Default timeout for War Room agents (seconds). Can be overridden in env.
-WAR_ROOM_TIMEOUT_SECONDS = int(os.getenv("WAR_ROOM_TIMEOUT_SECONDS", "25"))
+# Increased to 120s for Render free tier (slower CPU)
+WAR_ROOM_TIMEOUT_SECONDS = int(os.getenv("WAR_ROOM_TIMEOUT_SECONDS", "120"))
 
 if not GROQ_API_KEY:
     logger.error("❌ GROQ_API_KEY not found. War Room agents will fail.")
