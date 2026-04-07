@@ -60,6 +60,8 @@ from app.routers import v2_analysis
 from app.routers import auth
 from app.routers import market
 from app.routers import portfolio
+from app.routers import broker_integration
+from app.routers import agent_microservices
 
 # Setup logging first
 setup_logging()
@@ -92,15 +94,35 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # =============================================================================
 
 # 1. Session Middleware (Required for OAuth)
+# Require SECRET_KEY to be set - no default for security
+secret_key = os.getenv('SECRET_KEY')
+if not secret_key:
+    logger.error("❌ SECRET_KEY environment variable is required but not set!")
+    raise ValueError("SECRET_KEY must be set in environment variables")
+
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv('SECRET_KEY', 'your-secret-key-here')
+    secret_key=secret_key
 )
 
 # 2. Trusted Host Middleware - Prevents Host Header attacks
+# Build allowed hosts list
+allowed_hosts_list = ["localhost", "127.0.0.1", "0.0.0.0"]
+
+# Add production hosts from environment
+production_host = os.getenv('PRODUCTION_HOST')
+if production_host:
+    allowed_hosts_list.append(production_host)
+
+# Add Render/Railway hosts if deployed
+if IS_CLOUD:
+    render_host = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+    if render_host:
+        allowed_hosts_list.append(render_host)
+
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"]  # In production: ["yourdomain.com", "*.yourdomain.com"]
+    allowed_hosts=allowed_hosts_list
 )
 
 # 2. Security Headers Middleware
@@ -155,13 +177,24 @@ async def log_requests(request: Request, call_next):
 # CORS Middleware Configuration
 # =============================================================================
 
+# Build allowed origins list
+cors_origins = list(ALLOWED_ORIGINS)
+
+# Add specific deployment domains (no wildcards)
+if IS_CLOUD:
+    # Add your specific production domains here
+    cors_origins.extend([
+        "https://quantpulse-frontend.vercel.app",
+        "https://quantpulse-frontend.netlify.app",
+    ])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"https://.*\.(onrender\.com|vercel\.app|netlify\.app)",
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # =============================================================================
@@ -186,6 +219,8 @@ app.include_router(ensemble.router)
 app.include_router(v2_analysis.router)
 app.include_router(market.router)
 app.include_router(portfolio.router)
+app.include_router(broker_integration.router)
+app.include_router(agent_microservices.router)
 
 # =============================================================================
 # Application Startup

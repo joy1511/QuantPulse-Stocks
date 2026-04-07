@@ -22,7 +22,10 @@ import {
     ArrowDownRight,
     X,
     RefreshCw,
+    Download,
 } from "lucide-react";
+import BrokerSelectionModal from "@/app/components/BrokerSelectionModal";
+import ConnectedBrokers from "@/app/components/ConnectedBrokers";
 
 // ── Add / Edit Modal ─────────────────────────────────────────────────
 
@@ -197,6 +200,7 @@ export function PortfolioPage() {
     const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
     const [enriched, setEnriched] = useState<EnrichedHolding[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isBrokerModalOpen, setIsBrokerModalOpen] = useState(false);
     const [editingHolding, setEditingHolding] = useState<PortfolioHolding | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [priceFetchStatus, setPriceFetchStatus] = useState<string>("");
@@ -262,9 +266,17 @@ export function PortfolioPage() {
         setPriceFetchStatus("");
     }, [holdings]);
 
+    // Only fetch prices once when holdings are first loaded or when explicitly refreshed
     useEffect(() => {
-        fetchCurrentPrices();
-    }, [fetchCurrentPrices]);
+        if (holdings.length > 0) {
+            // Only fetch if we don't have enriched data yet
+            if (enriched.length === 0 || enriched.length !== holdings.length) {
+                fetchCurrentPrices();
+            }
+        } else {
+            setEnriched([]);
+        }
+    }, [holdings.length]); // Only depend on length change
 
     // CRUD handlers
     const handleSave = async (data: HoldingFormData) => {
@@ -345,6 +357,13 @@ export function PortfolioPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIsBrokerModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 text-[#4A9EFF] hover:text-[#F0F0F0] hover:bg-[#1A6FD4]/10 rounded-xl transition-all border border-[#1A6FD4]/30"
+                        >
+                            <Download className="size-4" />
+                            <span className="hidden sm:inline text-sm font-medium">Fetch Portfolio</span>
+                        </button>
                         <button
                             onClick={fetchCurrentPrices}
                             disabled={isLoading}
@@ -456,6 +475,9 @@ export function PortfolioPage() {
                         </div>
                     </div>
                 )}
+
+                {/* Connected Brokers */}
+                <ConnectedBrokers onSync={loadHoldings} />
 
                 {/* ── Holdings Table ──────────────────────────────────── */}
                 {holdings.length === 0 ? (
@@ -641,6 +663,16 @@ export function PortfolioPage() {
                 }}
                 onSave={handleSave}
                 editingHolding={editingHolding}
+            />
+
+            {/* Broker Selection Modal */}
+            <BrokerSelectionModal
+                isOpen={isBrokerModalOpen}
+                onClose={() => setIsBrokerModalOpen(false)}
+                onSuccess={() => {
+                    loadHoldings();
+                    fetchCurrentPrices();
+                }}
             />
         </div>
     );

@@ -63,3 +63,10 @@ opentelemetry-semantic-conventions==0.55b1
 tiktoken==0.8.0
 posthog==5.4.0
 rich==14.3.2
+
+# Broker Integrations (FREE APIs)
+smartapi-python>=1.3.5  # Angel One
+dhanhq>=1.4.5  # Dhan
+# Note: pyPMClient (Paytm Money) not available on PyPI - will implement direct API calls
+# Note: Groww API package not available on PyPI - using direct HTTP calls
+cryptography>=42.0.5  # Token encryption for broker credentials

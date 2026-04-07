@@ -30,24 +30,84 @@ import {
 // Chart data generator removed — real OHLC comes from V2 API response
 
 export function DashboardPage() {
-  const [selectedStock, setSelectedStock] = useState("RELIANCE");
-  const [stockData, setStockData] = useState<StockData | null>(null);
-  const [v2Data, setV2Data] = useState<V2AnalysisData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedStock, setSelectedStock] = useState(() => {
+    // Restore from sessionStorage on mount
+    try {
+      return sessionStorage.getItem('dashboard_ticker') || "";
+    } catch (e) {
+      console.error('Failed to read from sessionStorage:', e);
+      return "";
+    }
+  });
+  const [stockData, setStockData] = useState<StockData | null>(() => {
+    // Restore from sessionStorage on mount
+    try {
+      const saved = sessionStorage.getItem('dashboard_stockData');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error('Failed to parse stockData from sessionStorage:', e);
+      return null;
+    }
+  });
+  const [v2Data, setV2Data] = useState<V2AnalysisData | null>(() => {
+    // Restore from sessionStorage on mount
+    try {
+      const saved = sessionStorage.getItem('dashboard_v2Data');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error('Failed to parse v2Data from sessionStorage:', e);
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState(false);
   const [isV2Loading, setIsV2Loading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(() => {
+    // Restore from sessionStorage on mount
+    try {
+      return sessionStorage.getItem('dashboard_hasSearched') === 'true';
+    } catch (e) {
+      console.error('Failed to read hasSearched from sessionStorage:', e);
+      return false;
+    }
+  });
 
   const loadDashboardData = useCallback(async (symbol: string) => {
+    if (!symbol) return; // Don't load if no symbol
+    
     setIsLoading(true);
     setError(null);
+    setHasSearched(true);
+    
+    // Save to sessionStorage with error handling
+    try {
+      sessionStorage.setItem('dashboard_ticker', symbol);
+      sessionStorage.setItem('dashboard_hasSearched', 'true');
+    } catch (e) {
+      console.error('Failed to save to sessionStorage:', e);
+    }
 
     // 1. Fetch V1 stock data (for company name) - fast
     try {
       const stock = await fetchStockData(symbol);
       setStockData(stock);
+      try {
+        const stockJson = JSON.stringify(stock);
+        // Check size (sessionStorage limit is ~5MB)
+        if (stockJson.length < 1000000) { // 1MB limit
+          sessionStorage.setItem('dashboard_stockData', stockJson);
+        }
+      } catch (e) {
+        console.error('Failed to save stockData to sessionStorage:', e);
+      }
     } catch (err) {
       console.warn("Stock data fetch failed:", err);
       setStockData(null);
+      try {
+        sessionStorage.removeItem('dashboard_stockData');
+      } catch (e) {
+        // Ignore
+      }
     }
     setIsLoading(false);
 
@@ -58,9 +118,23 @@ export function DashboardPage() {
       const v2 = await fetchV2Analysis(symbol);
       setV2Data(v2);
       setError(null);
+      try {
+        const v2Json = JSON.stringify(v2);
+        // Check size (sessionStorage limit is ~5MB)
+        if (v2Json.length < 1000000) { // 1MB limit
+          sessionStorage.setItem('dashboard_v2Data', v2Json);
+        }
+      } catch (e) {
+        console.error('Failed to save v2Data to sessionStorage:', e);
+      }
     } catch (err) {
       console.error("V2 Analysis failed:", err);
       setV2Data(null);
+      try {
+        sessionStorage.removeItem('dashboard_v2Data');
+      } catch (e) {
+        // Ignore
+      }
       if (err instanceof Error) {
         if (err.message.includes('timeout')) {
           setError("Analysis timed out. The server may be loading AI models (first request takes 60-90s). Please try again.");
@@ -73,12 +147,11 @@ export function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadDashboardData(selectedStock);
-  }, [selectedStock, loadDashboardData]);
-
+  // Remove auto-load on mount - only load when user searches
   const handleSearch = (ticker: string) => {
-    setSelectedStock(ticker.toUpperCase());
+    const upperTicker = ticker.toUpperCase();
+    setSelectedStock(upperTicker);
+    loadDashboardData(upperTicker);
   };
 
   // Use V1 live quote price if available (more current), fallback to V2 historical close
@@ -168,6 +241,14 @@ export function DashboardPage() {
           <div className="h-[400px] flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#2A2A2A] bg-[#1E1E1E]/20">
             <Loader2 className="size-8 text-[#4A9EFF] animate-spin mb-4" />
             <p className="text-[#A0A0A0]">Fetching live market data...</p>
+          </div>
+        ) : !hasSearched ? (
+          <div className="h-[400px] flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#2A2A2A] bg-[#1E1E1E]/20">
+            <Brain className="size-12 text-[#4A9EFF] mb-4" />
+            <p className="text-[#F0F0F0] text-xl font-semibold mb-2">Welcome to Stock Analytics</p>
+            <p className="text-[#A0A0A0] text-center max-w-md">
+              Search for a stock ticker above to get AI-powered analysis with LSTM predictions, market regime detection, and multi-agent insights.
+            </p>
           </div>
         ) : (
           <>

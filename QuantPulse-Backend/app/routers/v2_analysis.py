@@ -300,3 +300,110 @@ async def analyze_ticker(ticker: str):
 
     logger.info(f"✅ V2 analysis complete for {ticker_clean} ({len(ohlc_data)} OHLC rows)")
     return response
+
+
+
+@router.get("/technical-data/{ticker}")
+async def get_technical_data(ticker: str):
+    """
+    Get technical data (LSTM, regime, VIX, features) for frontend chaining.
+    
+    This endpoint provides all the technical analysis data needed for the frontend
+    to call individual agent microservices sequentially with progress indicators.
+    
+    Args:
+        ticker: NSE stock symbol (e.g., "RELIANCE", "TCS", "HDFCBANK")
+    
+    Returns:
+        JSON with LSTM prediction, regime detection, VIX level, and technical features
+    """
+    ticker_clean = ticker.strip().upper()
+    logger.info(f"📊 Fetching technical data for {ticker_clean}...")
+    
+    try:
+        # Fetch market context
+        context = await fetch_market_context(ticker_clean)
+        target_df = context["target_df"]
+        nifty_df = context["nifty_df"]
+        vix_df = context["vix_df"]
+        
+        # Get current price
+        current_price = None
+        previous_close = None
+        if target_df is not None and not target_df.empty:
+            current_price = float(target_df["Close"].iloc[-1])
+            if len(target_df) > 1:
+                previous_close = float(target_df["Close"].iloc[-2])
+        
+        # LSTM prediction
+        lstm_result = lstm_predict(ticker_clean, target_df)
+        probability = lstm_result.get("probability", 0.5)
+        ai_outlook = lstm_result.get("outlook", "Neutral Outlook")
+        
+        # Regime detection
+        regime_result = detect_regime(nifty_df)
+        regime = regime_result.get("regime", "Unknown")
+        regime_confidence = regime_result.get("confidence", 0)
+        
+        # VIX level
+        vix_level = get_current_vix_level(vix_df)
+        
+        # Calculate technical features
+        features = {}
+        if target_df is not None and not target_df.empty and len(target_df) >= 20:
+            try:
+                # RSI
+                delta = target_df["Close"].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                rs = gain / loss
+                rsi = 100 - (100 / (1 + rs))
+                features["rsi"] = float(rsi.iloc[-1]) if not rsi.empty else 50.0
+                
+                # MACD
+                ema12 = target_df["Close"].ewm(span=12, adjust=False).mean()
+                ema26 = target_df["Close"].ewm(span=26, adjust=False).mean()
+                macd = ema12 - ema26
+                features["macd"] = float(macd.iloc[-1]) if not macd.empty else 0.0
+                
+                # Bollinger %B
+                sma20 = target_df["Close"].rolling(window=20).mean()
+                std20 = target_df["Close"].rolling(window=20).std()
+                upper_band = sma20 + (2 * std20)
+                lower_band = sma20 - (2 * std20)
+                bollinger_pctb = (target_df["Close"] - lower_band) / (upper_band - lower_band)
+                features["bollinger_pctb"] = float(bollinger_pctb.iloc[-1]) if not bollinger_pctb.empty else 0.5
+            except Exception as e:
+                logger.warning(f"Failed to calculate some features: {e}")
+                features = {"rsi": 50.0, "macd": 0.0, "bollinger_pctb": 0.5}
+        else:
+            features = {"rsi": 50.0, "macd": 0.0, "bollinger_pctb": 0.5}
+        
+        logger.info(f"✅ Technical data ready for {ticker_clean}")
+        
+        return {
+            "ticker": ticker_clean,
+            "lstm": {
+                "probability": probability,
+                "outlook": ai_outlook,
+                "confidence": f"{probability * 100:.1f}%"
+            },
+            "regime": {
+                "regime": regime,
+                "confidence": regime_confidence
+            },
+            "vix_level": round(vix_level, 2),
+            "features": {
+                "rsi": round(features.get("rsi", 50.0), 2),
+                "macd": round(features.get("macd", 0.0), 4),
+                "bollinger_pctb": round(features.get("bollinger_pctb", 0.5), 3)
+            },
+            "stock_price": {
+                "current_price": round(current_price, 2) if current_price else None,
+                "previous_close": round(previous_close, 2) if previous_close else None
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get technical data for {ticker_clean}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get technical data: {str(e)}")

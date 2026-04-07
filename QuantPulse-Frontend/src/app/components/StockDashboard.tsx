@@ -1,6 +1,7 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Search, TrendingUp, AlertTriangle, Loader2, BarChart2 } from "lucide-react";
+import AgentAnalysis from "./AgentAnalysis";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ||
     (window.location.hostname === "localhost"
@@ -38,6 +39,7 @@ const StockDashboard = () => {
     const [data, setData] = useState<V2AnalysisResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showAgentAnalysis, setShowAgentAnalysis] = useState(false);
 
     const handleAnalyze = async () => {
         if (!ticker) return;
@@ -86,52 +88,88 @@ const StockDashboard = () => {
 
             {/* Main Analysis Area */}
             {data && (
-                <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Quick Stats Sidebar */}
-                    <div className="space-y-4">
-                        <div className="bg-[rgba(30, 30, 30, 0.9)] p-6 rounded-2xl border border-[#2A2A2A]">
-                            <div className="flex items-center gap-3 text-[#A0A0A0] mb-2">
-                                <BarChart2 size={18} />
-                                <span className="text-xs uppercase tracking-widest font-semibold">Regime</span>
-                            </div>
-                            <div className="text-2xl font-bold text-[#4A9EFF]">{data.regime}</div>
-                        </div>
-
-                        <div className="bg-[rgba(30, 30, 30, 0.9)] p-6 rounded-2xl border border-[#2A2A2A]">
-                            <div className="flex items-center gap-3 text-[#A0A0A0] mb-2">
-                                <TrendingUp size={18} />
-                                <span className="text-xs uppercase tracking-widest font-semibold">LSTM Outlook</span>
-                            </div>
-                            <div className="text-2xl font-bold text-[#4CAF7D]">
-                                {data.ai_outlook} ({data.confidence})
-                            </div>
-                        </div>
-
-                        <div className="bg-[rgba(30, 30, 30, 0.9)] p-6 rounded-2xl border border-[#2A2A2A]">
-                            <div className="flex items-center gap-3 text-[#A0A0A0] mb-2">
-                                <AlertTriangle size={18} />
-                                <span className="text-xs uppercase tracking-widest font-semibold">Market Volatility</span>
-                            </div>
-                            <div className="text-2xl font-bold text-[#E8A838]">VIX: {data.vix}</div>
-                        </div>
-
-                        {/* Research Analysis Status */}
-                        {data.details.research_analysis.error && (
-                            <div className="bg-amber-500/5 p-4 rounded-2xl border border-[#E8A838]/20">
-                                <p className="text-xs text-[#E8A838] font-medium mb-1">AI Agents Status</p>
-                                <p className="text-xs text-[#A0A0A0]">
-                                    Agents temporarily offline. Showing LSTM + HMM analysis.
-                                </p>
-                            </div>
-                        )}
+                <div className="max-w-5xl mx-auto space-y-6">
+                    {/* Analysis Type Tabs */}
+                    <div className="flex gap-4 justify-center">
+                        <button
+                            onClick={() => setShowAgentAnalysis(false)}
+                            className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                                !showAgentAnalysis
+                                    ? "bg-[#1A6FD4] text-white"
+                                    : "bg-[rgba(30, 30, 30, 0.9)] text-[#A0A0A0] border border-[#2A2A2A] hover:bg-[#2A2A2A]"
+                            }`}
+                        >
+                            📊 Quick Analysis
+                        </button>
+                        <button
+                            onClick={() => setShowAgentAnalysis(true)}
+                            className={`px-6 py-3 rounded-xl font-medium transition-all ${
+                                showAgentAnalysis
+                                    ? "bg-[#1A6FD4] text-white"
+                                    : "bg-[rgba(30, 30, 30, 0.9)] text-[#A0A0A0] border border-[#2A2A2A] hover:bg-[#2A2A2A]"
+                            }`}
+                        >
+                            🤖 AI Agent Analysis (NEW)
+                        </button>
                     </div>
 
-                    {/* Detailed Research Analysis Report */}
-                    <div className="lg:col-span-2 bg-[rgba(30, 30, 30, 0.9)] p-8 rounded-2xl border border-[#2A2A2A] shadow-2xl">
-                        <div className="prose prose-invert max-w-none prose-headings:text-[#4A9EFF] prose-strong:text-[#4CAF7D] prose-td:text-[#A0A0A0] prose-th:text-[#A0A0A0]">
-                            <ReactMarkdown>{data.final_report}</ReactMarkdown>
+                    {/* Quick Analysis View */}
+                    {!showAgentAnalysis && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Quick Stats Sidebar */}
+                            <div className="space-y-4">
+                                <div className="bg-[rgba(30, 30, 30, 0.9)] p-6 rounded-2xl border border-[#2A2A2A]">
+                                    <div className="flex items-center gap-3 text-[#A0A0A0] mb-2">
+                                        <BarChart2 size={18} />
+                                        <span className="text-xs uppercase tracking-widest font-semibold">Regime</span>
+                                    </div>
+                                    <div className="text-2xl font-bold text-[#4A9EFF]">{data.regime}</div>
+                                </div>
+
+                                <div className="bg-[rgba(30, 30, 30, 0.9)] p-6 rounded-2xl border border-[#2A2A2A]">
+                                    <div className="flex items-center gap-3 text-[#A0A0A0] mb-2">
+                                        <TrendingUp size={18} />
+                                        <span className="text-xs uppercase tracking-widest font-semibold">LSTM Outlook</span>
+                                    </div>
+                                    <div className="text-2xl font-bold text-[#4CAF7D]">
+                                        {data.ai_outlook} ({data.confidence})
+                                    </div>
+                                </div>
+
+                                <div className="bg-[rgba(30, 30, 30, 0.9)] p-6 rounded-2xl border border-[#2A2A2A]">
+                                    <div className="flex items-center gap-3 text-[#A0A0A0] mb-2">
+                                        <AlertTriangle size={18} />
+                                        <span className="text-xs uppercase tracking-widest font-semibold">Market Volatility</span>
+                                    </div>
+                                    <div className="text-2xl font-bold text-[#E8A838]">VIX: {data.vix}</div>
+                                </div>
+
+                                {/* Research Analysis Status */}
+                                {data.details.research_analysis.error && (
+                                    <div className="bg-amber-500/5 p-4 rounded-2xl border border-[#E8A838]/20">
+                                        <p className="text-xs text-[#E8A838] font-medium mb-1">AI Agents Status</p>
+                                        <p className="text-xs text-[#A0A0A0]">
+                                            Agents temporarily offline. Showing LSTM + HMM analysis.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Detailed Research Analysis Report */}
+                            <div className="lg:col-span-2 bg-[rgba(30, 30, 30, 0.9)] p-8 rounded-2xl border border-[#2A2A2A] shadow-2xl">
+                                <div className="prose prose-invert max-w-none prose-headings:text-[#4A9EFF] prose-strong:text-[#4CAF7D] prose-td:text-[#A0A0A0] prose-th:text-[#A0A0A0]">
+                                    <ReactMarkdown>{data.final_report}</ReactMarkdown>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* AI Agent Analysis View */}
+                    {showAgentAnalysis && (
+                        <div className="max-w-4xl mx-auto">
+                            <AgentAnalysis ticker={data.ticker} />
+                        </div>
+                    )}
                 </div>
             )}
 

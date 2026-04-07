@@ -7,6 +7,7 @@ import {
     ArrowDownRight,
     Loader2,
     Flame,
+    RefreshCw,
 } from "lucide-react";
 
 // Map company names → NSE ticker symbols (Nifty 50)
@@ -84,35 +85,32 @@ interface MarketMoversProps {
 export function MarketMovers({ onStockClick }: MarketMoversProps) {
     const [gainers, setGainers] = useState<TrendingStock[]>([]);
     const [losers, setLosers] = useState<TrendingStock[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        let cancelled = false;
-
-        async function load() {
-            try {
-                const data = await fetchTrendingStocks();
-                if (!cancelled) {
-                    setGainers(data.top_gainers);
-                    setLosers(data.top_losers);
-                    setError(null);
-                }
-            } catch (err) {
-                console.error("Market Movers fetch error:", err);
-                if (!cancelled) setError("Market data unavailable");
-            } finally {
-                if (!cancelled) setIsLoading(false);
-            }
+    const loadMarketMovers = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const data = await fetchTrendingStocks();
+            setGainers(data.top_gainers);
+            setLosers(data.top_losers);
+            setHasLoaded(true);
+        } catch (err) {
+            console.error("Market Movers fetch error:", err);
+            setError("Market data unavailable");
+        } finally {
+            setIsLoading(false);
         }
+    };
 
-        load();
-        const interval = setInterval(load, 180_000);
-        return () => {
-            cancelled = true;
-            clearInterval(interval);
-        };
-    }, []);
+    // Load once on mount only
+    useEffect(() => {
+        if (!hasLoaded) {
+            loadMarketMovers();
+        }
+    }, [hasLoaded]);
 
     const handleClick = (stock: TrendingStock) => {
         onStockClick?.(resolveTicker(stock));
@@ -144,14 +142,24 @@ export function MarketMovers({ onStockClick }: MarketMoversProps) {
 
     return (
         <div className="space-y-4">
-            {/* Section header */}
-            <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-[#E8A838]/10 border border-[#E8A838]/20">
-                    <Flame className="size-4 text-[#E8A838]" />
+            {/* Section header with refresh button */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-[#E8A838]/10 border border-[#E8A838]/20">
+                        <Flame className="size-4 text-[#E8A838]" />
+                    </div>
+                    <h2 className="text-sm font-semibold text-[#A0A0A0] uppercase tracking-wider">
+                        Today's Market Movers
+                    </h2>
                 </div>
-                <h2 className="text-sm font-semibold text-[#A0A0A0] uppercase tracking-wider">
-                    Today's Market Movers
-                </h2>
+                <button
+                    onClick={loadMarketMovers}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#A0A0A0] hover:text-[#F0F0F0] hover:bg-white/5 rounded-lg transition-all border border-[#2A2A2A] disabled:opacity-50"
+                >
+                    <RefreshCw className={`size-3 ${isLoading ? "animate-spin" : ""}`} />
+                    <span className="hidden sm:inline">Refresh</span>
+                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
