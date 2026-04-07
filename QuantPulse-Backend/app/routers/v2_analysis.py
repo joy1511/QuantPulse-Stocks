@@ -21,7 +21,6 @@ from fastapi import APIRouter, HTTPException
 from app.services.data_provider import fetch_market_context, get_current_vix_level
 from app.services.lstm_service import predict as lstm_predict
 from app.services.regime_detector import detect_regime
-from app.services.agent_orchestrator import run_research_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -181,37 +180,34 @@ async def analyze_ticker(ticker: str):
         logger.info(f"📈 LSTM: Skipped (using neutral default)")
 
     # =========================================================================
-    # PHASE 3: REASONING — CrewAI Research Analysis (with 500-error shield)
+    # PHASE 3: REASONING — SKIPPED (Use dedicated microservice endpoints instead)
     # =========================================================================
-    logger.info("🏛️ Phase 3: Convening the Research Analysis...")
-
-    try:
-        research_result = run_research_analysis(
-            ticker=ticker_clean,
-            lstm_result=lstm_result,
-            regime_result=regime_result,
-            vix_level=vix_level,
-            features_summary=features_summary,
-        )
-    except Exception as e:
-        # Research Analysis crashed even past its own try-except — shield the endpoint
-        logger.error(f"❌ Research Analysis catastrophic failure: {e}")
-        logger.error(traceback.format_exc())
-        research_result = {
-            "report": (
-                f"## Technical Analysis Only: {ticker_clean} (NSE)\n\n"
-                f"⚠️ *AI Agent analysis unavailable. Showing LSTM + HMM results only.*\n\n"
-                f"### Market Regime\n**{regime}**\n\n"
-                f"### LSTM AI Analysis\n"
-                f"- Outlook: **{ai_outlook}**\n"
-                f"- Confidence: **{probability:.1%}**\n\n"
-                f"### India VIX\n**{vix_level:.1f}**\n\n"
-                f"---\n*Error: {str(e)[:200]}*"
-            ),
-            "technical_summary": "Neutral Outlook",
-            "agents_used": ["Technical Analysis Only (Research Analysis Failed)"],
-            "error": str(e),
-        }
+    # NOTE: CrewAI agents are now available via separate microservice endpoints:
+    # - POST /api/agents/fundamentalist
+    # - POST /api/agents/technician  
+    # - POST /api/agents/risk-manager
+    # This prevents memory overflow on free tier (512MB limit)
+    
+    logger.info("🏛️ Phase 3: Skipping Research Analysis (use microservice endpoints)")
+    
+    research_result = {
+        "report": (
+            f"## Technical Analysis: {ticker_clean} (NSE)\n\n"
+            f"### Market Regime\n**{regime}** (confidence: {regime_result.get('confidence', 0):.0%})\n\n"
+            f"### LSTM AI Analysis\n"
+            f"- Outlook: **{ai_outlook}**\n"
+            f"- Confidence: **{probability:.1%}**\n\n"
+            f"### India VIX\n**{vix_level:.1f}**\n\n"
+            f"### Technical Indicators\n"
+            f"- RSI: {features_summary.get('rsi', 50):.1f}\n"
+            f"- MACD: {features_summary.get('macd', 0):.4f}\n"
+            f"- Bollinger %B: {features_summary.get('bollinger_pctb', 0.5):.4f}\n\n"
+            f"---\n*For detailed agent analysis, use the AI Analysis Engine in the dashboard.*"
+        ),
+        "technical_summary": ai_outlook,
+        "agents_used": ["LSTM + HMM (Technical Analysis)"],
+        "error": None,
+    }
 
     final_report = research_result.get("report", "No report generated.")
     technical_summary = research_result.get("technical_summary", "Neutral Outlook")

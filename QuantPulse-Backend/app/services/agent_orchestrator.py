@@ -66,7 +66,6 @@ def run_research_analysis(
 
     # Phase A: Minimal buffer
     logger.info("⏳ Phase A: Initializing Research Analysis...")
-    time.sleep(1)
 
     # ---- PRODUCTION OPTIMIZATION ----
     # Only skip agents if FORCE_SIMULATION_MODE is explicitly set
@@ -75,32 +74,9 @@ def run_research_analysis(
         return _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
 
     try:
-        # Phase B: Run the crew with timeout protection
-        # Use threading.Timer for cross-platform timeout (SIGALRM only works on Unix)
-        import threading
-        result_container = {}
-        exception_container = {}
-
-        def run_with_timeout():
-            try:
-                result_container['result'] = _execute_crew(ticker, lstm_result, regime_result, vix_level, features_summary)
-            except Exception as e:
-                exception_container['error'] = e
-
-        thread = threading.Thread(target=run_with_timeout, daemon=True)
-        thread.start()
-        thread.join(timeout=WAR_ROOM_TIMEOUT_SECONDS)
-
-        if thread.is_alive():
-            logger.error(f"⏱️ Research Analysis timeout ({WAR_ROOM_TIMEOUT_SECONDS}s) - returning fallback report")
-            result = _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
-            result["error"] = f"AI agents timed out ({WAR_ROOM_TIMEOUT_SECONDS}s limit)"
-            return result
-
-        if 'error' in exception_container:
-            raise exception_container['error']
-
-        return result_container['result']
+        # Run crew directly - no threading to avoid memory leaks
+        result = _execute_crew(ticker, lstm_result, regime_result, vix_level, features_summary)
+        return result
             
     except Exception as e:
         # Phase C: Fail-safe — return fallback report from REAL data
