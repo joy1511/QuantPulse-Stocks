@@ -217,20 +217,44 @@ export function PortfolioPage() {
         }
     }, []);
 
-    // Load cached enriched data on mount
+    // Load holdings from MongoDB on mount
     useEffect(() => {
-        try {
-            const cached = sessionStorage.getItem('portfolio_enriched');
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                setEnriched(parsed);
-                hasFetchedPrices.current = true;
-            }
-        } catch (error) {
-            console.error('Failed to load cached portfolio:', error);
-        }
         loadHoldings();
     }, [loadHoldings]);
+
+    // Fetch prices when holdings are loaded
+    useEffect(() => {
+        if (holdings.length > 0 && !hasFetchedPrices.current) {
+            // Check cache first
+            try {
+                const cached = sessionStorage.getItem('portfolio_enriched');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    // Verify cached data matches current holdings
+                    if (parsed.length === holdings.length) {
+                        const holdingIds = holdings.map(h => h.id).sort();
+                        const cachedIds = parsed.map((h: EnrichedHolding) => h.id).sort();
+                        if (JSON.stringify(holdingIds) === JSON.stringify(cachedIds)) {
+                            // Cache is valid, use it
+                            setEnriched(parsed);
+                            hasFetchedPrices.current = true;
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load cached portfolio:', error);
+            }
+            
+            // No valid cache, fetch fresh prices
+            fetchCurrentPrices();
+            hasFetchedPrices.current = true;
+        } else if (holdings.length === 0) {
+            setEnriched([]);
+            hasFetchedPrices.current = false;
+            sessionStorage.removeItem('portfolio_enriched');
+        }
+    }, [holdings]); // Only depend on holdings, not fetchCurrentPrices
 
     // Fetch current prices for all holdings
     const fetchCurrentPrices = useCallback(async () => {
@@ -285,39 +309,6 @@ export function PortfolioPage() {
         setIsLoading(false);
         setPriceFetchStatus("");
     }, [holdings]);
-
-    // Fetch prices when holdings change (only if not already fetched)
-    useEffect(() => {
-        if (holdings.length > 0 && !hasFetchedPrices.current) {
-            // Check if we have cached data that matches current holdings
-            const cached = sessionStorage.getItem('portfolio_enriched');
-            if (cached) {
-                try {
-                    const parsed = JSON.parse(cached);
-                    // Verify cached data matches current holdings
-                    if (parsed.length === holdings.length) {
-                        const holdingIds = holdings.map(h => h.id).sort();
-                        const cachedIds = parsed.map((h: EnrichedHolding) => h.id).sort();
-                        if (JSON.stringify(holdingIds) === JSON.stringify(cachedIds)) {
-                            // Cache is valid, use it
-                            setEnriched(parsed);
-                            hasFetchedPrices.current = true;
-                            return;
-                        }
-                    }
-                } catch (error) {
-                    console.error('Failed to validate cached portfolio:', error);
-                }
-            }
-            // No valid cache, fetch fresh data
-            fetchCurrentPrices();
-            hasFetchedPrices.current = true;
-        } else if (holdings.length === 0) {
-            setEnriched([]);
-            hasFetchedPrices.current = false;
-            sessionStorage.removeItem('portfolio_enriched');
-        }
-    }, [holdings, fetchCurrentPrices]);
 
     // CRUD handlers
     const handleSave = async (data: HoldingFormData) => {

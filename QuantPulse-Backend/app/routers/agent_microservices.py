@@ -5,7 +5,7 @@ Splits the 3-agent CrewAI system into separate endpoints.
 Each endpoint loads only 1 agent to fit Render free tier (512MB).
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, validator
 from typing import Optional
 import os
@@ -143,7 +143,7 @@ class RiskManagerResponse(BaseModel):
 
 @router.post("/fundamentalist", response_model=FundamentalistResponse)
 @limiter.limit("10/minute")  # Max 10 requests per minute per IP
-async def run_fundamentalist(request: FundamentalistRequest):
+async def run_fundamentalist(data: FundamentalistRequest, request: Request):
     """
     Runs only the Fundamentalist agent.
     Searches news and analyzes macro conditions.
@@ -164,7 +164,7 @@ async def run_fundamentalist(request: FundamentalistRequest):
         # Create single agent
         fundamentalist = Agent(
             role="Fundamentalist Research Analyst",
-            goal=f"Research latest news for {request.ticker}. VIX={request.vix_level}",
+            goal=f"Research latest news for {data.ticker}. VIX={data.vix_level}",
             backstory="Seasoned macro analyst at top Indian research firm specializing in NSE stocks.",
             tools=[search_tool] if search_tool else [],
             llm=llm,
@@ -174,10 +174,10 @@ async def run_fundamentalist(request: FundamentalistRequest):
         
         # Create task
         task = Task(
-            description=f"""Search for '{request.ticker} India stock news' and analyze:
+            description=f"""Search for '{data.ticker} India stock news' and analyze:
             - Recent news and developments
             - Market sentiment
-            - VIX level: {request.vix_level}
+            - VIX level: {data.vix_level}
             
             Report bullish/bearish factors and conclude with sentiment: BULLISH, NEUTRAL, or BEARISH""",
             agent=fundamentalist,
@@ -203,7 +203,7 @@ async def run_fundamentalist(request: FundamentalistRequest):
         elif "BEARISH" in analysis_upper:
             sentiment = "BEARISH"
         
-        logger.info(f"Fundamentalist analysis complete for {request.ticker}: {sentiment}")
+        logger.info(f"Fundamentalist analysis complete for {data.ticker}: {sentiment}")
         
         return {
             "analysis": analysis_text,
@@ -221,7 +221,7 @@ async def run_fundamentalist(request: FundamentalistRequest):
 
 @router.post("/technician", response_model=TechnicianResponse)
 @limiter.limit("10/minute")  # Max 10 requests per minute per IP
-async def run_technician(request: TechnicianRequest):
+async def run_technician(data: TechnicianRequest, request: Request):
     """
     Runs only the Technician agent.
     Analyzes LSTM predictions and technical indicators.
@@ -234,7 +234,7 @@ async def run_technician(request: TechnicianRequest):
         
         technician = Agent(
             role="Technical Research Analyst",
-            goal=f"Analyze technicals for {request.ticker}. LSTM={request.lstm_probability:.1%}",
+            goal=f"Analyze technicals for {data.ticker}. LSTM={data.lstm_probability:.1%}",
             backstory="Expert technical analyst with 15 years experience in Indian markets.",
             llm=llm,
             verbose=False,
@@ -242,16 +242,16 @@ async def run_technician(request: TechnicianRequest):
         )
         
         task = Task(
-            description=f"""Analyze {request.ticker} technical indicators:
+            description=f"""Analyze {data.ticker} technical indicators:
             
             LSTM Prediction:
-            - Outlook: {request.lstm_outlook}
-            - Probability: {request.lstm_probability:.1%}
+            - Outlook: {data.lstm_outlook}
+            - Probability: {data.lstm_probability:.1%}
             
             Technical Indicators:
-            - RSI: {request.rsi}
-            - MACD: {request.macd}
-            - Bollinger %B: {request.bollinger_pctb}
+            - RSI: {data.rsi}
+            - MACD: {data.macd}
+            - Bollinger %B: {data.bollinger_pctb}
             
             Determine if technical indicators CONFIRM or CONTRADICT the LSTM outlook.
             Provide detailed technical analysis and conclude with: CONFIRMS or CONTRADICTS""",
@@ -274,7 +274,7 @@ async def run_technician(request: TechnicianRequest):
         if "CONTRADICT" in analysis_text.upper():
             confirmation = "CONTRADICTS"
         
-        logger.info(f"Technician analysis complete for {request.ticker}: {confirmation}")
+        logger.info(f"Technician analysis complete for {data.ticker}: {confirmation}")
         
         return {
             "analysis": analysis_text,
@@ -292,7 +292,7 @@ async def run_technician(request: TechnicianRequest):
 
 @router.post("/risk-manager", response_model=RiskManagerResponse)
 @limiter.limit("10/minute")  # Max 10 requests per minute per IP
-async def run_risk_manager(request: RiskManagerRequest):
+async def run_risk_manager(data: RiskManagerRequest, request: Request):
     """
     Runs only the Risk Manager agent.
     Synthesizes fundamentalist and technician analyses into final report.
@@ -305,15 +305,15 @@ async def run_risk_manager(request: RiskManagerRequest):
         
         # Build veto rules
         veto_rules = []
-        if "Bear" in request.regime or request.vix_level > 22:
-            veto_rules.append(f"CAUTION: Regime={request.regime}, VIX={request.vix_level}")
-        if request.lstm_probability > 0.70 and "Bull" in request.regime:
-            veto_rules.append(f"STRONG CONFLUENCE: LSTM={request.lstm_probability:.1%} + Bull regime")
+        if "Bear" in data.regime or data.vix_level > 22:
+            veto_rules.append(f"CAUTION: Regime={data.regime}, VIX={data.vix_level}")
+        if data.lstm_probability > 0.70 and "Bull" in data.regime:
+            veto_rules.append(f"STRONG CONFLUENCE: LSTM={data.lstm_probability:.1%} + Bull regime")
         veto_text = "\n".join(veto_rules) if veto_rules else "No special risk conditions"
         
         risk_manager = Agent(
             role="Chief Research Analyst",
-            goal=f"Final analysis for {request.ticker}. Regime={request.regime}, VIX={request.vix_level}",
+            goal=f"Final analysis for {data.ticker}. Regime={data.regime}, VIX={data.vix_level}",
             backstory="Chief Research Analyst for institutional clients with 20 years experience.",
             llm=llm,
             verbose=False,
@@ -321,20 +321,20 @@ async def run_risk_manager(request: RiskManagerRequest):
         )
         
         task = Task(
-            description=f"""Create Final Research Analysis Report for {request.ticker}:
+            description=f"""Create Final Research Analysis Report for {data.ticker}:
 
 MARKET CONTEXT:
-- Regime: {request.regime} ({request.regime_confidence:.0%} confidence)
-- VIX: {request.vix_level}
-- LSTM: {request.lstm_outlook} ({request.lstm_probability:.1%} probability)
+- Regime: {data.regime} ({data.regime_confidence:.0%} confidence)
+- VIX: {data.vix_level}
+- LSTM: {data.lstm_outlook} ({data.lstm_probability:.1%} probability)
 
 FUNDAMENTALIST ANALYSIS:
-{request.fundamentalist_analysis}
-Sentiment: {request.fundamentalist_sentiment}
+{data.fundamentalist_analysis}
+Sentiment: {data.fundamentalist_sentiment}
 
 TECHNICIAN ANALYSIS:
-{request.technician_analysis}
-Confirmation: {request.technician_confirmation}
+{data.technician_analysis}
+Confirmation: {data.technician_confirmation}
 
 RISK CONDITIONS:
 {veto_text}
@@ -377,7 +377,7 @@ Format in clean Markdown.""",
         elif "BULLISH OUTLOOK" in report_upper:
             technical_summary = "Bullish Outlook"
         
-        logger.info(f"Risk Manager report complete for {request.ticker}: {technical_summary}")
+        logger.info(f"Risk Manager report complete for {data.ticker}: {technical_summary}")
         
         return {
             "report": report_text,

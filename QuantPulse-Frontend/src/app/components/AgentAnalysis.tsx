@@ -84,9 +84,7 @@ export default function AgentAnalysis({ ticker, onComplete }: AgentAnalysisProps
                   Analyzing...
                 </>
               ) : (
-                <>
-                  🤖 Run AI Analysis
-                </>
+                'Run AI Analysis'
               )}
             </Button>
           </CardContent>

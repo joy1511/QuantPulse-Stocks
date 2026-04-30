@@ -5,6 +5,7 @@ import { StockInput } from "@/app/components/StockInput";
 import { StockChart } from "@/app/components/StockChart";
 import { MarketContextStrip } from "@/app/components/MarketContextStrip";
 import { MarketMovers } from "@/app/components/MarketMovers";
+import AgentAnalysis from "@/app/components/AgentAnalysis";
 import {
   fetchStockData,
   fetchV2Analysis,
@@ -388,7 +389,7 @@ export function DashboardPage() {
                   <div className="bg-[rgba(30, 30, 30, 0.9)] backdrop-blur-xl p-6 lg:p-8 rounded-2xl border border-[#2A2A2A]">
                     <div className="flex items-center gap-2 mb-5">
                       <FileText size={16} className="text-[#4A9EFF]" />
-                      <h3 className="text-sm font-semibold text-[#F0F0F0] uppercase tracking-wider">Research Analysis Report</h3>
+                      <h3 className="text-sm font-semibold text-[#F0F0F0] uppercase tracking-wider">Technical Analysis Summary</h3>
                     </div>
                     <div className="prose prose-invert prose-sm max-w-none
                       prose-headings:text-[#4A9EFF] prose-headings:font-semibold prose-headings:mt-6 prose-headings:mb-3
@@ -403,6 +404,11 @@ export function DashboardPage() {
                     ">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{v2Data.final_report}</ReactMarkdown>
                     </div>
+                  </div>
+
+                  {/* AI Agent Analysis - Detailed Multi-Agent Report */}
+                  <div className="mt-6">
+                    <AgentAnalysis ticker={selectedStock} />
                   </div>
                 </div>
               ) : (
