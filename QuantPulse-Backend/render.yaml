@@ -7,7 +7,7 @@ services:
     startCommand: gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 300 --graceful-timeout 120 --keep-alive 75 --max-requests 1000 --max-requests-jitter 50 --preload --worker-tmp-dir /dev/shm
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.0"
+        value: "3.11.9"  # ✅ FIX: Use 3.11 (not 3.12) for better TensorFlow compatibility
       - key: ENVIRONMENT
         value: production
       - key: WEB_CONCURRENCY
