@@ -3,18 +3,28 @@ services:
     name: quantpulse-stocks-backend
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 300 --graceful-timeout 120 --keep-alive 75 --max-requests 1000 --max-requests-jitter 50 --preload
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 300 --graceful-timeout 120 --keep-alive 75 --max-requests 1000 --max-requests-jitter 50 --preload --worker-tmp-dir /dev/shm
     envVars:
       - key: PYTHON_VERSION
-        value: "3.12.0"
+        value: "3.11.0"
       - key: ENVIRONMENT
         value: production
       - key: WEB_CONCURRENCY
         value: "1"
       - key: RENDER
         value: "true"
-      - key: FORCE_SIMULATION_MODE
-        value: "true"
+      # ✅ FIX: Remove FORCE_SIMULATION_MODE - let backend decide based on available resources
+      # - key: FORCE_SIMULATION_MODE
+      #   value: "true"
       - key: LOG_LEVEL
-        value: "WARNING"
+        value: "INFO"
+      # ✅ FIX: Add memory optimization flags
+      - key: MALLOC_ARENA_MAX
+        value: "2"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      # ✅ FIX: Increase War Room timeout for slower free tier CPU
+      - key: WAR_ROOM_TIMEOUT_SECONDS
+        value: "180"
+    healthCheckPath: /health

@@ -103,18 +103,25 @@ async def analyze_ticker(ticker: str):
     day_change_pct = None
     if target_df is not None and not target_df.empty and len(target_df) >= 2:
         import math
-        current_price = float(target_df["Close"].iloc[-1])
-        previous_close = float(target_df["Close"].iloc[-2])
-        
-        # Handle NaN values
-        if math.isnan(current_price) or math.isnan(previous_close):
+        try:
+            current_price = float(target_df["Close"].iloc[-1])
+            previous_close = float(target_df["Close"].iloc[-2])
+            
+            # Handle NaN values
+            if math.isnan(current_price) or math.isnan(previous_close):
+                current_price = None
+                previous_close = None
+                day_change = None
+                day_change_pct = None
+            else:
+                day_change = round(current_price - previous_close, 2)
+                day_change_pct = round((day_change / previous_close) * 100, 2) if previous_close else 0
+        except (ValueError, TypeError, KeyError) as e:
+            logger.warning(f"Failed to extract price data: {e}")
             current_price = None
             previous_close = None
             day_change = None
             day_change_pct = None
-        else:
-            day_change = round(current_price - previous_close, 2)
-            day_change_pct = round((day_change / previous_close) * 100, 2) if previous_close else 0
 
     # Validate target data
     if target_df is None:
@@ -219,28 +226,46 @@ async def analyze_ticker(ticker: str):
     # =========================================================================
     # RESPONSE — Assemble the final JSON (always succeeds)
     # =========================================================================
+    import math
+    
+    # Helper to sanitize float values (replace NaN/Inf with None or default)
+    def sanitize_float(value, default=None):
+        if value is None:
+            return default
+        try:
+            if math.isnan(value) or math.isinf(value):
+                return default
+            return value
+        except (TypeError, ValueError):
+            return default
+    
+    # Sanitize all numeric values before JSON serialization
     response = {
         "ticker": ticker_clean,
         "regime": regime,
-        "vix": round(vix_level, 2),
+        "vix": sanitize_float(vix_level, 15.0),
         "ai_outlook": ai_outlook,
         "confidence": f"{probability * 100:.1f}%",
         "final_report": final_report,
         "stock_price": {
-            "current_price": round(current_price, 2) if current_price else None,
-            "previous_close": round(previous_close, 2) if previous_close else None,
-            "day_change": day_change,
-            "day_change_pct": day_change_pct,
+            "current_price": sanitize_float(current_price),
+            "previous_close": sanitize_float(previous_close),
+            "day_change": sanitize_float(day_change),
+            "day_change_pct": sanitize_float(day_change_pct),
         },
         "details": {
             "lstm": {
-                "probability": probability,
+                "probability": sanitize_float(probability, 0.5),
                 "outlook": ai_outlook,
-                "features": features_summary,
+                "features": {
+                    "rsi": sanitize_float(features_summary.get("rsi"), 50.0),
+                    "macd": sanitize_float(features_summary.get("macd"), 0.0),
+                    "bollinger_pctb": sanitize_float(features_summary.get("bollinger_pctb"), 0.5),
+                },
             },
             "regime_detection": {
                 "regime": regime,
-                "confidence": regime_result.get("confidence", 0),
+                "confidence": sanitize_float(regime_result.get("confidence"), 0.0),
                 "all_states": regime_result.get("all_states", {}),
             },
             "research_analysis": {
@@ -327,9 +352,19 @@ async def get_technical_data(ticker: str):
         current_price = None
         previous_close = None
         if target_df is not None and not target_df.empty:
-            current_price = float(target_df["Close"].iloc[-1])
-            if len(target_df) > 1:
-                previous_close = float(target_df["Close"].iloc[-2])
+            import math
+            try:
+                current_price = float(target_df["Close"].iloc[-1])
+                if math.isnan(current_price):
+                    current_price = None
+                if len(target_df) > 1:
+                    previous_close = float(target_df["Close"].iloc[-2])
+                    if math.isnan(previous_close):
+                        previous_close = None
+            except (ValueError, TypeError, KeyError) as e:
+                logger.warning(f"Failed to extract price: {e}")
+                current_price = None
+                previous_close = None
         
         # LSTM prediction
         lstm_result = lstm_predict(ticker_clean, target_df)
@@ -347,6 +382,7 @@ async def get_technical_data(ticker: str):
         # Calculate technical features
         features = {}
         if target_df is not None and not target_df.empty and len(target_df) >= 20:
+            import math
             try:
                 # RSI
                 delta = target_df["Close"].diff()
@@ -354,13 +390,15 @@ async def get_technical_data(ticker: str):
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
                 rs = gain / loss
                 rsi = 100 - (100 / (1 + rs))
-                features["rsi"] = float(rsi.iloc[-1]) if not rsi.empty else 50.0
+                rsi_val = float(rsi.iloc[-1]) if not rsi.empty else 50.0
+                features["rsi"] = rsi_val if not math.isnan(rsi_val) else 50.0
                 
                 # MACD
                 ema12 = target_df["Close"].ewm(span=12, adjust=False).mean()
                 ema26 = target_df["Close"].ewm(span=26, adjust=False).mean()
                 macd = ema12 - ema26
-                features["macd"] = float(macd.iloc[-1]) if not macd.empty else 0.0
+                macd_val = float(macd.iloc[-1]) if not macd.empty else 0.0
+                features["macd"] = macd_val if not math.isnan(macd_val) else 0.0
                 
                 # Bollinger %B
                 sma20 = target_df["Close"].rolling(window=20).mean()
@@ -368,7 +406,8 @@ async def get_technical_data(ticker: str):
                 upper_band = sma20 + (2 * std20)
                 lower_band = sma20 - (2 * std20)
                 bollinger_pctb = (target_df["Close"] - lower_band) / (upper_band - lower_band)
-                features["bollinger_pctb"] = float(bollinger_pctb.iloc[-1]) if not bollinger_pctb.empty else 0.5
+                bb_val = float(bollinger_pctb.iloc[-1]) if not bollinger_pctb.empty else 0.5
+                features["bollinger_pctb"] = bb_val if not math.isnan(bb_val) else 0.5
             except Exception as e:
                 logger.warning(f"Failed to calculate some features: {e}")
                 features = {"rsi": 50.0, "macd": 0.0, "bollinger_pctb": 0.5}
@@ -377,26 +416,38 @@ async def get_technical_data(ticker: str):
         
         logger.info(f"✅ Technical data ready for {ticker_clean}")
         
+        # Sanitize all float values before JSON serialization
+        import math
+        def sanitize_float(value, default=None):
+            if value is None:
+                return default
+            try:
+                if math.isnan(value) or math.isinf(value):
+                    return default
+                return value
+            except (TypeError, ValueError):
+                return default
+        
         return {
             "ticker": ticker_clean,
             "lstm": {
-                "probability": probability,
+                "probability": sanitize_float(probability, 0.5),
                 "outlook": ai_outlook,
-                "confidence": f"{probability * 100:.1f}%"
+                "confidence": f"{sanitize_float(probability, 0.5) * 100:.1f}%"
             },
             "regime": {
                 "regime": regime,
-                "confidence": regime_confidence
+                "confidence": sanitize_float(regime_confidence, 0.0)
             },
-            "vix_level": round(vix_level, 2),
+            "vix_level": sanitize_float(vix_level, 15.0),
             "features": {
-                "rsi": round(features.get("rsi", 50.0), 2),
-                "macd": round(features.get("macd", 0.0), 4),
-                "bollinger_pctb": round(features.get("bollinger_pctb", 0.5), 3)
+                "rsi": sanitize_float(features.get("rsi", 50.0), 50.0),
+                "macd": sanitize_float(features.get("macd", 0.0), 0.0),
+                "bollinger_pctb": sanitize_float(features.get("bollinger_pctb", 0.5), 0.5)
             },
             "stock_price": {
-                "current_price": round(current_price, 2) if current_price else None,
-                "previous_close": round(previous_close, 2) if previous_close else None
+                "current_price": sanitize_float(current_price),
+                "previous_close": sanitize_float(previous_close)
             }
         }
         

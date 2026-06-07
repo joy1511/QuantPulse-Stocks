@@ -1,4 +1,4 @@
-# QuantPulse Backend Dependencies - Exact Match to Working Local Environment (Python 3.10)
+# QuantPulse Backend Dependencies - Optimized for Render Free Tier (Python 3.11)
 
 # Core Infrastructure
 fastapi==0.128.0
@@ -8,12 +8,12 @@ python-dotenv==1.1.1
 pydantic==2.11.10
 email-validator==2.3.0
 httpx==0.28.1
-cachetools==5.5.0
+cachetools==5.5.0  # ✅ FIX: Added for TTLCache (memory optimization)
 starlette==0.46.2
 
 # Database & ORM
 sqlalchemy==2.0.46
-psycopg2-binary==2.9.11
+psycopg2-binary==2.9.11  # PostgreSQL support for Render
 alembic==1.18.4
 pymongo==4.9.1
 motor==3.6.0
@@ -39,11 +39,13 @@ joblib==1.5.3
 # NLP (news sentiment)
 textblob==0.19.0
 
-# AI and Deep Learning
-tensorflow==2.18.0  # Latest stable for Python 3.12
+# AI and Deep Learning (Memory Optimized)
+# ✅ FIX: Use tensorflow-cpu for smaller memory footprint
+tensorflow-cpu==2.17.0  # CPU-only version (smaller than full TensorFlow)
 huggingface-hub==0.26.5
 
 # Agentic Framework - Exact versions from working local environment
+# ⚠️ WARNING: CrewAI is memory-intensive (~200MB). Only loaded when GROQ_API_KEY present.
 crewai==1.9.3
 crewai-tools==1.9.3
 langchain-groq==0.2.1
@@ -67,6 +69,10 @@ rich==14.3.2
 # Broker Integrations (FREE APIs)
 smartapi-python>=1.3.5  # Angel One
 dhanhq>=1.4.5  # Dhan
-# Note: pyPMClient (Paytm Money) not available on PyPI - will implement direct API calls
-# Note: Groww API package not available on PyPI - using direct HTTP calls
 cryptography>=42.0.5  # Token encryption for broker credentials
+
+# ✅ FIX: Optional monitoring dependencies
+psutil>=6.0.0  # Memory monitoring (optional, for logs only)
+
+# Note: Using Python 3.11 for better stability (3.12 has some compatibility issues with TensorFlow)
+

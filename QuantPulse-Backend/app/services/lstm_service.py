@@ -75,12 +75,19 @@ def _load_model():
     - Only imports TensorFlow when actually needed
     - Clears memory aggressively after loading
     - Uses minimal TensorFlow configuration
+    - Implements timeout protection
     """
     global _MODEL, _SCALER, _IS_LOADING, _LOAD_START_TIME, _LOAD_END_TIME
     
     # Prevent concurrent loading
     if _IS_LOADING:
         logger.info("⏳ Model loading already in progress, waiting...")
+        # Wait for loading to complete (max 120 seconds)
+        import time
+        wait_time = 0
+        while _IS_LOADING and wait_time < 120:
+            time.sleep(1)
+            wait_time += 1
         return
     
     if _MODEL is not None and _SCALER is not None:
@@ -129,13 +136,23 @@ def _load_model():
         os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
         os.environ["TF_GPU_THREAD_MODE"] = "gpu_private"
         
+        # ✅ FIX: Set TensorFlow memory limits for Render free tier (512MB)
+        os.environ["TF_FORCE_CPU_DEVICE"] = "1"
+        
         import tensorflow as tf
         
         # Disable GPU (not available on free tier anyway)
         tf.config.set_visible_devices([], 'GPU')
         
-        # Set memory growth to avoid pre-allocation
-        physical_devices = tf.config.list_physical_devices('CPU')
+        # ✅ FIX: Aggressive memory management for free tier
+        try:
+            # Limit CPU memory growth
+            physical_devices = tf.config.list_physical_devices('CPU')
+            if physical_devices:
+                for device in physical_devices:
+                    tf.config.experimental.set_memory_growth(device, True)
+        except Exception as mem_err:
+            logger.warning(f"⚠️ Could not set memory growth: {mem_err}")
         
         tf.get_logger().setLevel("ERROR")
 
@@ -152,9 +169,17 @@ def _load_model():
         load_duration = _LOAD_END_TIME - _LOAD_START_TIME
         logger.info(f"⏱️ Model loading completed in {load_duration:.1f}s")
         
-        # Clear memory after loading
+        # ✅ FIX: Aggressive garbage collection after model loading
         import gc
         gc.collect()
+        try:
+            # Try to get memory info (platform dependent)
+            import psutil
+            process = psutil.Process()
+            memory_mb = process.memory_info().rss / 1024 / 1024
+            logger.info(f"💾 Memory usage after model load: {memory_mb:.1f} MB")
+        except ImportError:
+            pass
         logger.info(f"🧹 Memory cleared after model loading")
 
     except Exception as e:
@@ -163,6 +188,8 @@ def _load_model():
         print(f"Error: {e}")
         print(f"{'='*60}\n")
         logger.error(f"❌ CRITICAL: Model load failed after download: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
     finally:
         _IS_LOADING = False
 

@@ -256,16 +256,29 @@ class StockService:
         return clean
     
     def _quote_to_dict(self, quote: StockQuote) -> Dict[str, Any]:
-        """Convert StockQuote to dictionary"""
+        """Convert StockQuote to dictionary with NaN sanitization"""
+        import math
+        
+        # Helper to sanitize float values (replace NaN/Inf with None)
+        def sanitize_float(value):
+            if value is None:
+                return None
+            try:
+                if math.isnan(value) or math.isinf(value):
+                    return None
+                return value
+            except (TypeError, ValueError):
+                return value
+        
         return {
             "symbol": quote.symbol,
             "companyName": quote.symbol,  # Will be enhanced with real company names
-            "currentPrice": quote.price,
-            "previousClose": quote.previous_close,
-            "change": quote.change,
-            "changePercent": quote.percent_change,
-            "volume": quote.volume,
-            "volumeFormatted": self._format_volume(quote.volume),
+            "currentPrice": sanitize_float(quote.price),
+            "previousClose": sanitize_float(quote.previous_close),
+            "change": sanitize_float(quote.change),
+            "changePercent": sanitize_float(quote.percent_change),
+            "volume": quote.volume if quote.volume and not math.isnan(float(quote.volume)) else 0,
+            "volumeFormatted": self._format_volume(quote.volume) if quote.volume else "0",
             "currency": quote.currency,
             "exchange": quote.exchange,
             "timestamp": quote.timestamp,

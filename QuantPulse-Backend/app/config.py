@@ -54,11 +54,28 @@ STOCK_PROVIDER = os.getenv("STOCK_PROVIDER", "auto")  # auto, indianapi, twelved
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY")
 
 # AI / LLM API Keys (for War Room agents)
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "MISSING_KEY")
-SERPER_API_KEY = os.getenv("SERPER_API_KEY", "MISSING_KEY")
+# ✅ FIX: Better API key validation with explicit None for missing keys
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+
+# Validate critical API keys in production
+if IS_CLOUD and not GROQ_API_KEY:
+    import warnings
+    warnings.warn(
+        "⚠️ WARNING: GROQ_API_KEY not set - War Room AI agents will be disabled. "
+        "Set GROQ_API_KEY environment variable to enable AI analysis.",
+        RuntimeWarning
+    )
 
 # Security Keys
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production-please-use-strong-key")
+# ✅ FIX: Validate SECRET_KEY is set in production
+_secret_key = os.getenv("SECRET_KEY")
+if not _secret_key and IS_CLOUD:
+    raise ValueError(
+        "❌ CRITICAL: SECRET_KEY environment variable must be set in production! "
+        "Generate one using: openssl rand -hex 32"
+    )
+SECRET_KEY = _secret_key or "development-only-insecure-key-change-in-production"
 
 # Hugging Face Token (for downloading LSTM model)
 HF_TOKEN = os.getenv("HF_TOKEN", None)  # None = public repo, no token needed

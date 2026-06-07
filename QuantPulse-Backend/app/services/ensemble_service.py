@@ -60,12 +60,22 @@ class QuantAgent:
         - Price target
         - Model confidence
         """
+        import math
+        
+        # Helper to handle NaN values
+        def safe_value(val, default=0.0):
+            try:
+                f = float(val)
+                return default if (math.isnan(f) or math.isinf(f)) else f
+            except (ValueError, TypeError):
+                return default
+        
         symbol_col = f"{symbol.upper()}.NS"
         
         # Default forecast if no data
         forecast = {
-            "base_price": current_price,
-            "predicted_price": current_price * 1.02,  # Default 2% up
+            "base_price": safe_value(current_price, 100.0),
+            "predicted_price": safe_value(current_price * 1.02, 102.0),  # Default 2% up
             "direction": "UP",
             "confidence": 65.0,
             "volatility": 0.02,
@@ -80,16 +90,16 @@ class QuantAgent:
                 if len(prices) >= 20:
                     # Calculate technical indicators
                     returns = np.diff(prices) / prices[:-1]
-                    volatility = np.std(returns)
+                    volatility = safe_value(np.std(returns), 0.02)
                     
                     # Simple moving averages
-                    sma_20 = np.mean(prices[-20:])
-                    sma_5 = np.mean(prices[-5:])
-                    current = prices[-1]
+                    sma_20 = safe_value(np.mean(prices[-20:]), current_price)
+                    sma_5 = safe_value(np.mean(prices[-5:]), current_price)
+                    current = safe_value(prices[-1], current_price)
                     
-                    # Trend analysis
-                    trend = (sma_5 - sma_20) / sma_20
-                    momentum = (current - sma_5) / sma_5
+                    # Trend analysis (with zero-division protection)
+                    trend = safe_value((sma_5 - sma_20) / sma_20 if sma_20 > 0 else 0, 0.0)
+                    momentum = safe_value((current - sma_5) / sma_5 if sma_5 > 0 else 0, 0.0)
                     
                     # Predict direction based on trend
                     if trend > 0.01 and momentum > 0:
@@ -103,14 +113,14 @@ class QuantAgent:
                         price_change = trend * 0.5
                     
                     # Scale prediction to current price
-                    predicted_price = current_price * (1 + price_change)
+                    predicted_price = safe_value(current_price * (1 + price_change), current_price * 1.02)
                     
                     # Confidence based on trend clarity
                     trend_strength = min(abs(trend) * 100, 1.0)
                     confidence = 50 + (trend_strength * 40)
                     
                     forecast = {
-                        "base_price": current_price,
+                        "base_price": safe_value(current_price, 100.0),
                         "predicted_price": round(predicted_price, 2),
                         "direction": direction,
                         "confidence": round(confidence, 1),
@@ -464,59 +474,71 @@ class EnsembleOrchestrator:
         else:
             final_direction = "SIDEWAYS"
         
-        # Calculate adjustment breakdown
-        topology_adjustment = ((topology_adjusted - base_predicted) / base_predicted) * 100
+        # Calculate adjustment breakdown (with NaN protection)
+        import math
+        topology_adjustment = ((topology_adjusted - base_predicted) / base_predicted) * 100 if base_predicted > 0 else 0
         sentiment_adjustment = ((final_predicted - topology_adjusted) / topology_adjusted) * 100 if topology_adjusted > 0 else 0
+        
+        # Helper function to safely convert floats and handle NaN
+        def safe_float(value, decimals=2):
+            """Convert to float and handle NaN/Inf by returning 0"""
+            try:
+                f = float(value)
+                if math.isnan(f) or math.isinf(f):
+                    return 0.0
+                return round(f, decimals)
+            except (ValueError, TypeError):
+                return 0.0
         
         result = {
             "symbol": symbol.upper(),
             "timestamp": datetime.now().isoformat(),
-            "current_price": current_price,
+            "current_price": safe_float(current_price, 2),
             
             # Final ensemble prediction
-            "weighted_prediction": round(final_predicted, 2),
-            "confidence_score": round(ensemble_confidence, 1),
+            "weighted_prediction": safe_float(final_predicted, 2),
+            "confidence_score": safe_float(ensemble_confidence, 1),
             "direction": final_direction,
-            "price_change_percent": round(price_change_pct, 2),
+            "price_change_percent": safe_float(price_change_pct, 2),
             
             # Component breakdown
             "components": {
                 "quant_agent": {
-                    "base_forecast": round(base_predicted, 2),
-                    "confidence": quant_forecast["confidence"],
+                    "base_forecast": safe_float(base_predicted, 2),
+                    "confidence": safe_float(quant_forecast["confidence"], 1),
                     "direction": quant_forecast["direction"],
-                    "volatility": quant_forecast["volatility"],
-                    "trend_strength": quant_forecast["trend_strength"],
+                    "volatility": safe_float(quant_forecast["volatility"], 4),
+                    "trend_strength": safe_float(quant_forecast["trend_strength"], 4),
                     "weight": self.weights["quant"]
                 },
                 "topology_agent": {
-                    "risk_adjustment": topology_risk["risk_adjustment"],
-                    "adjusted_price": round(topology_adjusted, 2),
-                    "network_risk_penalty": topology_risk["network_risk_penalty"],
+                    "risk_adjustment": safe_float(topology_risk["risk_adjustment"], 4),
+                    "adjusted_price": safe_float(topology_adjusted, 2),
+                    "network_risk_penalty": safe_float(topology_risk["network_risk_penalty"], 4),
                     "cluster_name": topology_risk["cluster_name"],
-                    "cluster_risk": topology_risk["cluster_risk"],
-                    "centrality_score": topology_risk["centrality_score"],
-                    "contagion_risk": topology_risk["contagion_risk"],
+                    "cluster_risk": safe_float(topology_risk["cluster_risk"], 4),
+                    "centrality_score": safe_float(topology_risk["centrality_score"], 4),
+                    "contagion_risk": safe_float(topology_risk["contagion_risk"], 4),
                     "neighbor_signals": topology_risk["neighbor_signals"],
                     "weight": self.weights["topology"]
                 },
                 "sentiment_agent": {
-                    "sentiment_multiplier": sentiment["sentiment_multiplier"],
-                    "consensus_score": sentiment["consensus_score"],
+                    "sentiment_multiplier": safe_float(sentiment["sentiment_multiplier"], 4),
+                    "consensus_score": safe_float(sentiment["consensus_score"], 1),
                     "sentiment_label": sentiment["sentiment_label"],
-                    "bull_bear_ratio": sentiment["bull_bear_ratio"],
-                    "confidence": sentiment["confidence"],
+                    "bull_bear_ratio": safe_float(sentiment["bull_bear_ratio"], 2),
+                    "confidence": safe_float(sentiment["confidence"], 1),
                     "weight": self.weights["sentiment"]
                 }
             },
             
             # Comparison data for visualization
             "comparison": {
-                "lstm_base": round(base_predicted, 2),
-                "agentic_adjusted": round(final_predicted, 2),
-                "topology_adjustment_pct": round(topology_adjustment, 2),
-                "sentiment_adjustment_pct": round(sentiment_adjustment, 2),
-                "total_adjustment_pct": round(price_change_pct - ((base_predicted - current_price) / current_price * 100), 2)
+                "lstm_base": safe_float(base_predicted, 2),
+                "agentic_adjusted": safe_float(final_predicted, 2),
+                "topology_adjustment_pct": safe_float(topology_adjustment, 2),
+                "sentiment_adjustment_pct": safe_float(sentiment_adjustment, 2),
+                "total_adjustment_pct": safe_float(price_change_pct - ((base_predicted - current_price) / current_price * 100), 2)
             },
             
             # Shock simulation status

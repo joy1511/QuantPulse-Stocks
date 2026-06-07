@@ -46,12 +46,24 @@ class IndianAPIProvider(BaseStockProvider):
                     If None, uses FREE tier (basic endpoints work without key)
         """
         super().__init__(api_key)
-        self.session = httpx.AsyncClient(timeout=30.0)
+        # ✅ FIX: Use connection pooling and limits to prevent memory leaks
+        self.session = httpx.AsyncClient(
+            timeout=30.0,
+            limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
+        )
         
         if self.api_key:
             logger.info("✅ IndianAPI provider initialized (Premium tier with API key)")
         else:
             logger.info("✅ IndianAPI provider initialized (FREE tier - no API key)")
+    
+    async def __aenter__(self):
+        """Async context manager entry"""
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit - ensures session cleanup"""
+        await self.close()
     
     def _get_headers(self) -> dict:
         """

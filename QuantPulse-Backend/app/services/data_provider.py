@@ -66,7 +66,10 @@ except ImportError:
 # 24-Hour Caching System (Aggressive Caching to Avoid Rate Limits)
 # =============================================================================
 
-_CACHE_24H = {}  # Global cache for 24-hour data storage
+from cachetools import TTLCache
+
+# ✅ FIX: Use bounded cache with max size to prevent memory leaks
+_CACHE_24H = TTLCache(maxsize=1000, ttl=86400)  # 1000 entries, 24-hour TTL
 
 def get_cache_key(ticker: str, data_type: str) -> str:
     """Generate cache key for ticker and data type"""
@@ -85,23 +88,29 @@ def is_cache_valid(cache_entry: dict, max_age_hours: int = 24) -> bool:
 def get_from_cache(ticker: str, data_type: str, max_age_hours: int = 24):
     """Get data from 24-hour cache if valid"""
     cache_key = get_cache_key(ticker, data_type)
-    cache_entry = _CACHE_24H.get(cache_key)
-    
-    if is_cache_valid(cache_entry, max_age_hours):
-        age_hours = (time.time() - cache_entry["timestamp"]) / 3600
-        logger.info(f"✨ Using cached data for {ticker} ({data_type}) - age: {age_hours:.1f}h")
-        return cache_entry["data"]
+    try:
+        cache_entry = _CACHE_24H.get(cache_key)
+        
+        if cache_entry and is_cache_valid(cache_entry, max_age_hours):
+            age_hours = (time.time() - cache_entry["timestamp"]) / 3600
+            logger.info(f"✨ Using cached data for {ticker} ({data_type}) - age: {age_hours:.1f}h")
+            return cache_entry["data"]
+    except Exception as e:
+        logger.warning(f"⚠️ Cache retrieval error for {ticker}: {e}")
     
     return None
 
 def save_to_cache(ticker: str, data_type: str, data):
-    """Save data to 24-hour cache"""
+    """Save data to 24-hour cache with bounded size"""
     cache_key = get_cache_key(ticker, data_type)
-    _CACHE_24H[cache_key] = {
-        "data": data,
-        "timestamp": time.time()
-    }
-    logger.info(f"💾 Cached data for {ticker} ({data_type}) - valid for 24h")
+    try:
+        _CACHE_24H[cache_key] = {
+            "data": data,
+            "timestamp": time.time()
+        }
+        logger.info(f"💾 Cached data for {ticker} ({data_type}) - valid for 24h (cache size: {len(_CACHE_24H)})")
+    except Exception as e:
+        logger.warning(f"⚠️ Cache save error for {ticker}: {e}")
 
 
 # =============================================================================

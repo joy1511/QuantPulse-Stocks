@@ -73,6 +73,13 @@ def run_research_analysis(
         logger.info("🚀 Simulation Mode: Skipping AI Agents (FORCE_SIMULATION_MODE=true)")
         return _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
 
+    # ✅ FIX: Check if GROQ_API_KEY is available before attempting agent execution
+    if not GROQ_API_KEY or GROQ_API_KEY == "MISSING_KEY":
+        logger.warning("⚠️ GROQ_API_KEY not available - using fallback analysis")
+        result = _build_fallback_research_report(ticker, lstm_result, regime_result, vix_level, features_summary)
+        result["error"] = "AI agents disabled: GROQ_API_KEY not configured"
+        return result
+
     try:
         # Run crew directly - no threading to avoid memory leaks
         result = _execute_crew(ticker, lstm_result, regime_result, vix_level, features_summary)
