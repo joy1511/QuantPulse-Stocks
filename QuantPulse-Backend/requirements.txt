@@ -1,17 +1,17 @@
 # QuantPulse Backend Dependencies - Fixed for Render Deployment (Python 3.11)
 # ✅ All dependency conflicts resolved
-# ✅ Compatible with TensorFlow 2.17.0
+# ✅ Compatible with TensorFlow 2.17.0 and numpy 1.26.4
 
 # Core Infrastructure
-fastapi==0.115.0  # ✅ FIX: Stable version with Python 3.11
+fastapi==0.115.0
 uvicorn[standard]==0.32.1
 gunicorn==23.0.0
 python-dotenv==1.1.1
-pydantic==2.9.2  # ✅ FIX: Compatible version
+pydantic==2.9.2
 email-validator==2.3.0
-httpx==0.27.2  # ✅ FIX: Stable version
+httpx==0.27.2
 cachetools==5.5.0
-starlette==0.41.3  # ✅ FIX: Match FastAPI version
+starlette==0.38.6  # ✅ FIX: Compatible with FastAPI 0.115.0 (<0.39.0)
 
 # Database & ORM
 sqlalchemy==2.0.46
@@ -32,44 +32,41 @@ itsdangerous==2.2.0
 # Data and Math - ✅ FIXED: All compatible with numpy 1.26.4
 yfinance==1.1.0
 nsepython==2.97
-pandas==2.2.3  # ✅ Compatible with numpy 1.26
+pandas==2.2.3
 numpy==1.26.4  # ✅ TensorFlow requires <2.0.0
-scikit-learn==1.6.0  # ✅ Compatible with numpy 1.26
-hmmlearn==0.3.2  # ✅ Compatible with numpy 1.26
+scikit-learn==1.6.0
+hmmlearn==0.3.2
 joblib==1.5.3
 
 # NLP (news sentiment)
 textblob==0.19.0
 
 # AI and Deep Learning (Memory Optimized)
-# ✅ FIX: tensorflow-cpu with compatible numpy
 tensorflow-cpu==2.17.0  # Requires numpy<2.0.0
 huggingface-hub==0.26.5
 
-# Agentic Framework - Exact versions from working local environment
-crewai==0.80.0  # ✅ FIX: Stable version
-crewai-tools==0.17.0  # ✅ FIX: Compatible with crewai 0.80
+# Agentic Framework
+crewai==0.80.0
+crewai-tools==0.17.0
 langchain-groq==0.2.1
-langchain-core==0.3.15  # ✅ FIX: Stable version
-chromadb==0.5.23  # ✅ FIX: Smaller, more stable version
+langchain-core==0.3.15
+chromadb==0.5.23
 groq==0.37.1
-litellm==1.55.10  # ✅ FIX: Stable version
+litellm==1.55.10
 
 # Supporting packages for crewai
-opentelemetry-api==1.28.2  # ✅ FIX: Stable version
+opentelemetry-api==1.28.2
 opentelemetry-sdk==1.28.2
 opentelemetry-exporter-otlp-proto-http==1.28.2
 tiktoken==0.8.0
 posthog==5.4.0
 rich==14.3.2
 
-# Broker Integrations (FREE APIs)
+# Broker Integrations
 smartapi-python>=1.3.5
 dhanhq>=1.4.5
 cryptography>=42.0.5
 
-# ✅ FIX: Optional monitoring dependencies
+# Monitoring
 psutil>=6.0.0
-
-# Note: Using Python 3.11.9 for maximum compatibility with TensorFlow
 
