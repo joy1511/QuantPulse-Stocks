@@ -1,6 +1,7 @@
 # QuantPulse Backend Dependencies - Fixed for Render Deployment (Python 3.11)
 # ✅ All dependency conflicts resolved
-# ✅ Compatible with TensorFlow 2.17.0 and numpy 1.26.4
+# ❌ tensorflow-cpu REMOVED: irreconcilable protobuf conflict with crewai>=0.80 (opentelemetry needs protobuf>=5, TF needs <5)
+# ℹ️  LSTM service handles missing TF gracefully: returns Neutral signal when TF not installed
 
 # Core Infrastructure
 fastapi==0.115.0
@@ -33,7 +34,7 @@ itsdangerous==2.2.0
 yfinance==1.1.0
 nsepython==2.97
 pandas==2.2.3
-numpy==1.26.4  # ✅ TensorFlow requires <2.0.0
+numpy==1.26.4
 scikit-learn==1.6.0
 hmmlearn==0.3.2
 joblib==1.5.3
@@ -41,8 +42,9 @@ joblib==1.5.3
 # NLP (news sentiment)
 textblob==0.19.0
 
-# AI and Deep Learning (Memory Optimized)
-tensorflow-cpu==2.17.0  # Requires numpy<2.0.0
+# AI and Deep Learning
+# tensorflow-cpu REMOVED — conflicts with crewai's opentelemetry (protobuf<5 vs protobuf>=5)
+# LSTM service returns Neutral gracefully when TF is not installed
 huggingface-hub==0.26.5
 
 # Agentic Framework
@@ -54,10 +56,7 @@ chromadb==0.5.23
 groq==0.37.1
 litellm==1.55.10
 
-# Supporting packages for crewai
-# opentelemetry-api==1.28.2
-# opentelemetry-sdk==1.28.2
-# opentelemetry-exporter-otlp-proto-http==1.28.2
+# Supporting packages for crewai (versions resolved by crewai's own deps)
 tiktoken==0.8.0
 posthog==5.4.0
 rich==14.3.2
